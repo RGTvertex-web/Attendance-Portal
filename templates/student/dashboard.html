@@ -1,0 +1,200 @@
+{% extends "base_dashboard.html" %}
+
+{% block page_title %}My Dashboard{% endblock %}
+
+{% block content %}
+
+<!-- ── At-Risk banner ──────────────────────────────────────────────────────── -->
+{% if g.user.status == 'at_risk' %}
+<div class="alert alert-danger" style="margin-bottom: 2rem;">
+  <span style="font-size:1.5rem;">🔥</span>
+  <div>
+    <div style="font-weight: 600;">You are flagged as At-Risk</div>
+    <div class="text-muted" style="font-size: 0.875rem;">Your attendance is below the required threshold. Contact your manager immediately.</div>
+  </div>
+</div>
+{% endif %}
+
+<!-- ── Hero Section ──────────────────────────────────────────────────────── -->
+<section class="hero-section">
+  <div class="hero-badge">Intern</div>
+  <h1 class="hero-title">Welcome back, {{ g.user.name.split(' ')[0] }}.</h1>
+  <p class="hero-subtitle">Submit your daily report and track your attendance.</p>
+</section>
+
+<!-- ── Stats ───────────────────────────────────────────────────────────────── -->
+<div class="grid-cols-4 mb-4">
+  <div class="stat-card">
+    <div class="stat-label">Present Days</div>
+    <div class="stat-value">{{ att_summary.present }}</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-label">Total Reports</div>
+    <div class="stat-value">{{ submissions | length }}</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-label">Absent Days</div>
+    <div class="stat-value">{{ att_summary.absent }}</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-label">Attendance Rate</div>
+    <div class="stat-value">{{ att_summary.percentage }}%</div>
+  </div>
+</div>
+
+<!-- ── Main Grid ───────────────────────────────────────────────────────────── -->
+<div class="grid-cols-2 mb-4">
+
+  <!-- Left: Submit Daily Report -->
+  <div class="card">
+    <div class="card-header">
+      <h3 class="card-title">Submit Daily Report</h3>
+    </div>
+    <div class="card-body">
+      <form method="POST" action="{{ url_for('student.submit_report') }}" novalidate>
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        
+        <div class="form-group">
+          <label class="form-label" for="task_given">What task was given today?</label>
+          <textarea id="task_given" name="task_given" class="form-control" rows="2" placeholder="Describe the task given in the meeting..." required></textarea>
+        </div>
+        
+        <div class="form-group">
+          <label class="form-label" for="task_done">How much is done?</label>
+          <textarea id="task_done" name="task_done" class="form-control" rows="3" placeholder="Describe what you completed..." required></textarea>
+        </div>
+        
+        <div class="form-group mb-4">
+          <label class="form-label" for="task_remaining">How much is remaining?</label>
+          <textarea id="task_remaining" name="task_remaining" class="form-control" rows="2" placeholder="What is left for tomorrow? (Optional)"></textarea>
+        </div>
+        
+        <button type="submit" class="btn btn-primary" style="width: 100%;">Submit Report <i class="fa-solid fa-check"></i></button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Right: Attendance history + Warnings -->
+  <div style="display: flex; flex-direction: column; gap: 2rem;">
+
+    <!-- Attendance Calendar -->
+    <div class="card">
+      <div class="card-header">
+        <h3 class="card-title">Recent Attendance</h3>
+      </div>
+      <div class="card-body">
+        <div style="display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 1.5rem;">
+          {% for rec in att_summary.records[:60] %}
+            <div title="{{ rec.date }} — {{ rec.status | replace('_',' ') | title }} ({{ rec.category }})"
+                 style="width: 12px; height: 12px; border-radius: 2px;
+                        {% if rec.status == 'present' %}background-color: var(--color-brand-black);{% elif rec.status == 'present_late' %}background-color: var(--color-text-secondary);{% elif rec.status == 'on_leave' %}background-color: var(--color-info, #3b82f6);{% else %}background-color: var(--color-border);{% endif %}">
+            </div>
+          {% else %}
+            <div class="text-muted text-sm">No records yet</div>
+          {% endfor %}
+        </div>
+        <div style="display: flex; gap: 1rem; font-size: 0.75rem; color: var(--color-text-secondary);">
+          <div style="display: flex; align-items: center; gap: 0.25rem;">
+            <div style="width: 10px; height: 10px; background-color: var(--color-brand-black); border-radius: 2px;"></div> Present
+          </div>
+          <div style="display: flex; align-items: center; gap: 0.25rem;">
+            <div style="width: 10px; height: 10px; background-color: var(--color-info, #3b82f6); border-radius: 2px;"></div> On Leave
+          </div>
+          <div style="display: flex; align-items: center; gap: 0.25rem;">
+            <div style="width: 10px; height: 10px; background-color: var(--color-border); border-radius: 2px;"></div> Absent
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Warnings -->
+    {% if warnings %}
+    <div class="card">
+      <div class="card-header">
+        <h3 class="card-title">My Warnings ({{ warnings | length }})</h3>
+      </div>
+      <div class="card-body">
+        <div style="display: flex; flex-direction: column; gap: 1rem;">
+        {% for w in warnings %}
+        <div style="padding-bottom: 1rem; border-bottom: 1px solid var(--color-border); {% if loop.last %}border-bottom: none; padding-bottom: 0;{% endif %}">
+          <div style="display: flex; align-items: flex-start; gap: 1rem;">
+            <div style="color: var(--color-danger);"><i class="fa-solid fa-circle-exclamation"></i></div>
+            <div style="flex-grow: 1;">
+              <div style="font-weight: 500; margin-bottom: 0.25rem;">{{ w.reason[:100] }}{% if w.reason|length > 100 %}…{% endif %}</div>
+              <div class="text-muted" style="font-size: 0.75rem;">{{ w.date }} · Issued by {{ w.issued_by }}</div>
+            </div>
+            {% if w.acknowledged == 'yes' %}
+              <span class="badge badge-success">Ack</span>
+            {% else %}
+              <span class="badge badge-warning">New</span>
+            {% endif %}
+          </div>
+        </div>
+        {% endfor %}
+        </div>
+      </div>
+    </div>
+    {% endif %}
+
+    <!-- Performance Reports -->
+    {% if perf_reports %}
+    <div class="card">
+      <div class="card-header">
+        <h3 class="card-title">Performance Reports</h3>
+      </div>
+      <div class="card-body">
+        <div style="display: flex; flex-direction: column; gap: 1rem;">
+        {% for pr in perf_reports %}
+          <div style="padding-bottom: 1rem; border-bottom: 1px solid var(--color-border); {% if loop.last %}border-bottom: none; padding-bottom: 0;{% endif %}">
+            <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 0.5rem;">
+              <div style="font-weight: 600;">
+                {{ pr.report_type }}
+                <span class="badge {% if pr.rating == 'Excellent' %}badge-success{% elif pr.rating == 'Good' %}badge-admin{% elif pr.rating == 'Need Improvement' %}badge-warning{% else %}badge-danger{% endif %}" style="margin-left: 0.5rem;">
+                  {{ pr.rating }}
+                </span>
+                <span class="badge badge-neutral" style="margin-left: 0.25rem;">Discipline: {{ pr.discipline }}/10</span>
+              </div>
+              <div class="text-muted" style="font-size: 0.75rem;">{{ pr.created_at[:10] }}</div>
+            </div>
+            <div class="text-muted" style="font-size: 0.875rem;">
+              {{ pr.feedback }}
+            </div>
+          </div>
+        {% endfor %}
+        </div>
+      </div>
+    </div>
+    {% endif %}
+
+  </div>
+</div>
+
+<!-- ── Past Reports ───────────────────────────────────────────────────────────── -->
+{% if submissions %}
+<div class="card mt-4">
+  <div class="card-header">
+    <h3 class="card-title">Past Reports</h3>
+  </div>
+  <div class="card-body">
+    <div style="display: flex; flex-direction: column; gap: 1.5rem;">
+      {% for sub in submissions %}
+      <div style="padding-bottom: 1.5rem; border-bottom: 1px solid var(--color-border); {% if loop.last %}border-bottom: none; padding-bottom: 0;{% endif %}">
+        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.75rem;">
+          <div style="font-weight: 600;">Report ID: {{ sub.task_id }}</div>
+          <div class="text-muted" style="font-size: 0.75rem;">{{ sub.submitted_at[:10] }}</div>
+        </div>
+        <div style="font-size: 0.875rem;">
+          <div style="margin-bottom: 0.5rem;"><strong>Given:</strong> {{ sub.report_data.given }}</div>
+          <div style="margin-bottom: 0.5rem;"><strong>Done:</strong> {{ sub.report_data.done }}</div>
+          {% if sub.report_data.remaining %}
+          <div><strong>Remaining:</strong> {{ sub.report_data.remaining }}</div>
+          {% endif %}
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+{% endif %}
+
+{% endblock %}

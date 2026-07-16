@@ -1,0 +1,108 @@
+{% extends "base_dashboard.html" %}
+
+{% block page_title %}My Reports{% endblock %}
+
+{% block content %}
+<div style="max-width: 800px; margin: 2rem auto;">
+  
+  <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 2rem;">
+    <div>
+      <h1 class="hero-title" style="font-size: 2rem; margin-bottom: 0.5rem;">My Reports</h1>
+      <p class="text-muted">Submit your weekly and monthly progress reports.</p>
+    </div>
+  </div>
+
+  <div class="card" style="margin-bottom: 2rem;">
+    <div class="card-header" style="border-bottom: 1px solid var(--color-border); padding: 1.5rem; font-weight: 600;">
+      Submit a Report
+    </div>
+    <div class="card-body" style="padding: 1.5rem;">
+      <form method="POST" action="{{ url_for('intern.submit_report') }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        
+        <div class="form-group mb-4">
+          <label class="form-label">Report Type</label>
+          <select name="report_type" class="form-select" required>
+            <option value="weekly">Weekly Report</option>
+            <option value="monthly">Monthly Report</option>
+          </select>
+        </div>
+
+        <div style="display: flex; gap: 1rem; margin-bottom: 1rem;">
+          <div class="form-group" style="flex: 1;">
+            <label class="form-label">Period Start Date</label>
+            <input type="date" name="period_start" class="form-control" required>
+          </div>
+          <div class="form-group" style="flex: 1;">
+            <label class="form-label">Period End Date (Inclusive)</label>
+            <input type="date" name="period_end" class="form-control" required>
+          </div>
+        </div>
+
+        <div class="form-group mb-4">
+          <label class="form-label">Report Content (What did you achieve?)</label>
+          <textarea name="content" class="form-control" rows="5" required placeholder="Detail your tasks, learnings, and challenges here..."></textarea>
+        </div>
+
+        <button type="submit" class="btn btn-primary">
+          Submit Report <i class="fa-solid fa-arrow-right"></i>
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header" style="border-bottom: 1px solid var(--color-border); padding: 1.5rem; font-weight: 600;">
+      Past Reports
+    </div>
+    <div class="card-body" style="padding: 0;">
+      <table class="table" style="width: 100%; border-collapse: collapse;">
+        <thead>
+          <tr style="border-bottom: 1px solid var(--color-border); background: var(--color-surface);">
+            <th style="padding: 1rem 1.5rem; text-align: left; font-weight: 500; font-size: 0.875rem; color: var(--color-text-muted);">Type & Period</th>
+            <th style="padding: 1rem 1.5rem; text-align: left; font-weight: 500; font-size: 0.875rem; color: var(--color-text-muted);">Submitted At</th>
+            <th style="padding: 1rem 1.5rem; text-align: left; font-weight: 500; font-size: 0.875rem; color: var(--color-text-muted);">Status</th>
+            <th style="padding: 1rem 1.5rem; text-align: left; font-weight: 500; font-size: 0.875rem; color: var(--color-text-muted);">Review Notes</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for r in reports %}
+          <tr style="border-bottom: 1px solid var(--color-border);">
+            <td style="padding: 1rem 1.5rem; font-size: 0.875rem;">
+              <div style="font-weight: 500; text-transform: capitalize;">{{ r.report_type }}</div>
+              <div class="text-muted" style="font-size: 0.75rem;">{{ r.period_start }} to {{ r.period_end }}</div>
+            </td>
+            <td style="padding: 1rem 1.5rem; font-size: 0.875rem;">
+              {{ r.submitted_at[:10] }}
+            </td>
+            <td style="padding: 1rem 1.5rem; font-size: 0.875rem;">
+              {% if r.reviewed_by %}
+                <span class="badge" style="background: #e6f4ea; color: #137333; padding: 0.25rem 0.5rem; border-radius: 99px; font-size: 0.75rem;">Reviewed</span>
+              {% else %}
+                <span class="badge" style="background: var(--color-surface); color: var(--color-text-muted); padding: 0.25rem 0.5rem; border-radius: 99px; border: 1px solid var(--color-border); font-size: 0.75rem;">Pending</span>
+              {% endif %}
+            </td>
+            <td style="padding: 1rem 1.5rem; font-size: 0.875rem;">
+              {% if r.review_notes %}
+                <div class="text-muted" style="max-width: 200px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="{{ r.review_notes }}">
+                  {{ r.review_notes }}
+                </div>
+              {% else %}
+                -
+              {% endif %}
+            </td>
+          </tr>
+          {% else %}
+          <tr>
+            <td colspan="4" style="padding: 2rem; text-align: center; color: var(--color-text-muted);">
+              You haven't submitted any reports yet.
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+{% endblock %}
