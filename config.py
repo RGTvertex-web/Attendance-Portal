@@ -1,8 +1,3 @@
-"""
-config.py — Application configuration for Creator Attendance Portal.
-All secrets are loaded from environment variables. Never hardcode credentials here.
-"""
-
 import os
 from dotenv import load_dotenv
 import pytz
@@ -22,6 +17,7 @@ class BaseConfig:
     SECRET_KEY = os.environ.get("SECRET_KEY", "change-me-in-production")
     WTF_CSRF_ENABLED = True
     WTF_CSRF_TIME_LIMIT = 3600  # 1 hour
+    WTF_CSRF_SSL_STRICT = False
 
     # Google Sheets
     GOOGLE_CREDENTIALS_JSON = os.environ.get("GOOGLE_CREDENTIALS_JSON")  # Full JSON string
@@ -57,7 +53,7 @@ class ProductionConfig(BaseConfig):
     DEBUG = False
     TESTING = False
     SESSION_COOKIE_SECURE = True
-    WTF_CSRF_SSL_STRICT = True
+    WTF_CSRF_SSL_STRICT = False
 
 
 def get_config():
