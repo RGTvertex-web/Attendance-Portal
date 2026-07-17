@@ -75,11 +75,32 @@ def signup():
                 if role == "intern" and not internship_duration:
                     error = "Interns must select an internship duration."
                 else:
-                    # Validate manager is in same department (if one is selected)
-                    if manager_id:
-                        manager_profile = supa.get_profile(manager_id)
-                        if manager_profile and manager_profile.get("department") != department:
-                            error = "Manager must be in the same department."
+                    if role == "intern":
+                        # Automatic manager assignment
+                        dept_managers = supa.get_managers_by_department(department)
+                        if not dept_managers:
+                            error = "No manager is available for this department yet. Please contact your administrator."
+                        else:
+                            # Fetch all interns and count assigned managers
+                            all_profiles = supa.get_all_profiles()
+                            interns = [p for p in all_profiles if p.get("role") == "intern" and p.get("department") == department]
+                            
+                            # Tally interns per manager
+                            counts = {m["id"]: 0 for m in dept_managers}
+                            for intern in interns:
+                                i_mid = intern.get("manager_id")
+                                if i_mid in counts:
+                                    counts[i_mid] += 1
+                                    
+                            # Select manager with fewest interns (tiebreak by alphabetical ID)
+                            best_manager = min(dept_managers, key=lambda m: (counts[m["id"]], m["id"]))
+                            manager_id = best_manager["id"]
+                    else:
+                        # Fallback for manual manager ID (if role != intern)
+                        if manager_id:
+                            manager_profile = supa.get_profile(manager_id)
+                            if manager_profile and manager_profile.get("department") != department:
+                                error = "Manager must be in the same department."
                     
                     if not error:
                         auth_data = supa.sign_up(
