@@ -1,0 +1,258 @@
+{% extends "base_dashboard.html" %}
+
+{% block page_title %}Admin Dashboard{% endblock %}
+
+{% block content %}
+<!-- ── Hero Banner ─────────────────────────────────────────────────────────── -->
+<div class="hero-banner" style="display: flex; justify-content: space-between; align-items: flex-end;">
+  <div>
+    <div class="hero-tag">
+      <i class="fa-solid fa-circle" style="color: #111; font-size:0.5rem;"></i>
+      {{ org.today_present }} Present &nbsp;·&nbsp; {{ org.today_absent }} Absent &nbsp;·&nbsp; {{ org.unack_warnings }} Unread Warnings
+    </div>
+    <h1 class="hero-headline">Welcome back, {{ g.user.name }}.</h1>
+    <p class="hero-sub mb-0">Here's your organisation's snapshot for today.</p>
+  </div>
+  
+  <!-- Exports -->
+  <div style="display: flex; gap: 0.5rem;">
+    <div class="dropdown">
+      <button class="btn btn-outline" type="button" data-bs-toggle="dropdown" aria-expanded="false" style="background: white; border-color: rgba(255,255,255,0.2);">
+        <i class="fa-solid fa-download"></i> Export Data
+      </button>
+      <ul class="dropdown-menu dropdown-menu-end">
+        <li><h6 class="dropdown-header">CSV</h6></li>
+        <li><a class="dropdown-item" href="{{ url_for('admin.export_data', report_type='attendance', format='csv') }}">Attendance</a></li>
+        <li><a class="dropdown-item" href="{{ url_for('admin.export_data', report_type='leaves', format='csv') }}">Leaves</a></li>
+        <li><a class="dropdown-item" href="{{ url_for('admin.export_data', report_type='performance', format='csv') }}">Performance</a></li>
+        <li><hr class="dropdown-divider"></li>
+        <li><h6 class="dropdown-header">Excel (.xlsx)</h6></li>
+        <li><a class="dropdown-item" href="{{ url_for('admin.export_data', report_type='attendance', format='excel') }}">Attendance</a></li>
+        <li><a class="dropdown-item" href="{{ url_for('admin.export_data', report_type='leaves', format='excel') }}">Leaves</a></li>
+        <li><a class="dropdown-item" href="{{ url_for('admin.export_data', report_type='performance', format='excel') }}">Performance</a></li>
+        <li><hr class="dropdown-divider"></li>
+        <li><h6 class="dropdown-header">PDF</h6></li>
+        <li><a class="dropdown-item" href="{{ url_for('admin.export_data', report_type='attendance', format='pdf') }}">Attendance</a></li>
+        <li><a class="dropdown-item" href="{{ url_for('admin.export_data', report_type='leaves', format='pdf') }}">Leaves</a></li>
+        <li><a class="dropdown-item" href="{{ url_for('admin.export_data', report_type='performance', format='pdf') }}">Performance</a></li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<!-- ── Stat Cards ─────────────────────────────────────────────────────────── -->
+<div class="kpi-row">
+  <div class="kpi-card">
+    <div class="kpi-icon icon-blue"><i class="fa-solid fa-users"></i></div>
+    <div class="kpi-details">
+      <div class="kpi-value">{{ org.total_students }}</div>
+      <div class="kpi-label">Active Interns</div>
+    </div>
+  </div>
+  <div class="kpi-card">
+    <div class="kpi-icon icon-green"><i class="fa-solid fa-check"></i></div>
+    <div class="kpi-details">
+      <div class="kpi-value">{{ org.today_present }}</div>
+      <div class="kpi-label">Present Today</div>
+    </div>
+  </div>
+  <div class="kpi-card">
+    <div class="kpi-icon icon-red"><i class="fa-solid fa-xmark"></i></div>
+    <div class="kpi-details">
+      <div class="kpi-value">{{ org.today_absent }}</div>
+      <div class="kpi-label">Absent Today</div>
+    </div>
+  </div>
+  <div class="kpi-card">
+    <div class="kpi-icon icon-amber"><i class="fa-solid fa-triangle-exclamation"></i></div>
+    <div class="kpi-details">
+      <div class="kpi-value">{{ org.unack_warnings }}</div>
+      <div class="kpi-label">Unread Warnings</div>
+    </div>
+  </div>
+</div>
+
+<!-- ── Charts Row ─────────────────────────────────────────────────────────── -->
+<div class="charts-row">
+  <div class="card mb-0">
+    <div class="card-header">
+      <h3 class="card-title">Attendance Trends (Last 7 Days)</h3>
+    </div>
+    <div class="card-body" style="height: 300px;">
+      <canvas id="trendChart"></canvas>
+    </div>
+  </div>
+  <div class="card mb-0">
+    <div class="card-header">
+      <h3 class="card-title">Today's Status</h3>
+    </div>
+    <div class="card-body" style="height: 300px; display: flex; justify-content: center;">
+      <canvas id="statusChart"></canvas>
+    </div>
+  </div>
+</div>
+
+<div class="grid-cols-2 mb-4 mt-4">
+  <!-- At-Risk Students -->
+  <div class="card mb-0">
+    <div class="card-header">
+      <h3 class="card-title">At-Risk Students</h3>
+      <span class="badge badge-info">{{ org.at_risk_students | length }} found</span>
+    </div>
+    <div class="card-body" style="padding:0;">
+      {% if org.at_risk_students %}
+        <div class="table-responsive">
+          <table class="table" style="margin-bottom:0;">
+            <tbody>
+              {% for student in org.at_risk_students %}
+              <tr>
+                <td>
+                  <div style="font-weight: 500;">{{ student.name }}</div>
+                  <div class="text-muted" style="font-size: 0.75rem;">Manager: {{ student.manager_id or 'None' }}</div>
+                </td>
+                <td style="text-align: right;">
+                  <span class="badge badge-danger">At Risk</span>
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      {% else %}
+        <div class="text-center text-muted" style="padding: 2rem 0;">No students at risk.</div>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- Recent Warnings -->
+  <div class="card mb-0">
+    <div class="card-header">
+      <h3 class="card-title">Recent Warnings</h3>
+    </div>
+    <div class="card-body" style="padding:0;">
+      {% if recent_warnings %}
+        <div class="table-responsive">
+          <table class="table" style="margin-bottom:0;">
+            <tbody>
+              {% for w in recent_warnings %}
+              <tr>
+                <td>
+                  <div style="font-weight: 500;">{{ w.reason[:60] }}{% if w.reason|length > 60 %}...{% endif %}</div>
+                  <div class="text-muted" style="font-size: 0.75rem;">{{ w.student_id[:8] }}… · {{ w.date }}</div>
+                </td>
+                <td style="text-align: right;">
+                  {% if w.acknowledged == 'yes' %}
+                    <span class="badge badge-success">Ack</span>
+                  {% else %}
+                    <span class="badge badge-warning">New</span>
+                  {% endif %}
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      {% else %}
+        <div class="text-center text-muted" style="padding: 2rem 0;">No warnings issued yet.</div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+<!-- ── Manual Override Form (collapsed) ─────────────────────────────────── -->
+<details class="card mb-4 mt-4">
+  <summary class="card-header" style="cursor:pointer; font-weight:600; list-style:none;">
+    Override Attendance Record
+  </summary>
+  <div class="card-body">
+    <form method="POST" action="{{ url_for('admin.override_attendance') }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <div class="grid-cols-2">
+        <div class="form-group">
+          <label class="form-label">Student ID</label>
+          <input type="text" name="student_id" class="form-control" placeholder="UUID" required>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Date</label>
+          <input type="date" name="date" class="form-control" required>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Task ID</label>
+          <input type="text" name="linked_task_id" class="form-control" placeholder="UUID" required>
+        </div>
+        <div class="form-group">
+          <label class="form-label">New Status</label>
+          <select name="new_status" class="form-select" required>
+            <option value="present">Present</option>
+            <option value="present_late">Present (Late)</option>
+            <option value="absent">Absent</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Override Notes</label>
+        <input type="text" name="notes" class="form-control" placeholder="Reason for override...">
+      </div>
+      <button type="submit" class="btn btn-primary" data-confirm="Override this attendance record?">Override Record <i class="fa-solid fa-arrow-right"></i></button>
+    </form>
+  </div>
+</details>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script>
+  document.addEventListener("DOMContentLoaded", function() {
+    const present = {{ org.today_present }};
+    const absent = {{ org.today_absent }};
+    const onLeave = {{ org.today_on_leave }};
+    
+    // Status Donut Chart
+    new Chart(document.getElementById('statusChart'), {
+      type: 'doughnut',
+      data: {
+        labels: ['Present', 'Absent', 'On Leave'],
+        datasets: [{
+          data: [present, absent, onLeave],
+          backgroundColor: ['#111111', '#7a1f2b', '#9ca3af'],
+          borderWidth: 0
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { position: 'bottom' }
+        },
+        cutout: '70%'
+      }
+    });
+
+    // Trend Line Chart (Mock Data)
+    new Chart(document.getElementById('trendChart'), {
+      type: 'line',
+      data: {
+        labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+        datasets: [{
+          label: 'Attendance %',
+          data: [85, 88, 92, 90, 85, 95, present > 0 ? 100 * present / (present + absent + onLeave || 1) : 0],
+          borderColor: '#111111',
+          backgroundColor: 'rgba(17, 17, 17, 0.06)',
+          tension: 0.4,
+          fill: true
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { display: false }
+        },
+        scales: {
+          y: { beginAtZero: true, max: 100 }
+        }
+      }
+    });
+  });
+</script>
+{% endblock %}

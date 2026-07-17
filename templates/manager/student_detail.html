@@ -1,0 +1,203 @@
+{% extends "base_dashboard.html" %}
+
+{% block page_title %}{{ student.name }}{% endblock %}
+
+{% block content %}
+<!-- ── Header & Actions ─────────────────────────────────────────────────── -->
+<div style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 2rem;">
+  <div>
+    <h1 class="hero-title" style="font-size: 2.5rem; margin-bottom: 0.5rem;">{{ student.name }}</h1>
+    <p class="text-muted" style="margin: 0;">Detailed attendance and warning history.</p>
+  </div>
+  <div>
+    <a href="{{ url_for('manager.dashboard') }}" class="btn btn-secondary">
+      <i class="fa-solid fa-arrow-left"></i> Back to Dashboard
+    </a>
+  </div>
+</div>
+
+<div class="grid-cols-2 mb-4">
+
+  <!-- Attendance Summary -->
+  <div class="card">
+    <div class="card-header">
+      <h3 class="card-title">Attendance Summary</h3>
+    </div>
+    <div class="card-body">
+      <div class="grid-cols-2" style="gap: 1rem; margin-bottom: 1.5rem;">
+        <div class="stat-card" style="padding: 1rem;">
+          <div class="stat-label">Present</div>
+          <div class="stat-value" style="font-size: 1.75rem;">{{ att_summary.present }}</div>
+        </div>
+        <div class="stat-card" style="padding: 1rem;">
+          <div class="stat-label">Late</div>
+          <div class="stat-value" style="font-size: 1.75rem;">{{ att_summary.late }}</div>
+        </div>
+        <div class="stat-card" style="padding: 1rem;">
+          <div class="stat-label">Absent</div>
+          <div class="stat-value" style="font-size: 1.75rem;">{{ att_summary.absent }}</div>
+        </div>
+        <div class="stat-card" style="padding: 1rem;">
+          <div class="stat-label">Overall</div>
+          <div class="stat-value" style="font-size: 1.75rem;">{{ att_summary.percentage }}%</div>
+        </div>
+      </div>
+
+      <div style="width: 100%; height: 8px; background-color: var(--color-surface-hover); border-radius: 999px; overflow: hidden; margin-bottom: 0.5rem;">
+        <div style="height: 100%; background-color: var(--color-brand-black); width: {{ att_summary.percentage }}%;"></div>
+      </div>
+      <div class="text-muted" style="font-size: 0.75rem; text-align: center;">{{ att_summary.percentage }}% overall attendance rate</div>
+    </div>
+  </div>
+
+  <!-- Warnings -->
+  <div class="card">
+    <div class="card-header">
+      <h3 class="card-title">Warnings ({{ warnings | length }})</h3>
+    </div>
+    <div class="card-body">
+      {% if warnings %}
+        <div style="display: flex; flex-direction: column; gap: 1rem;">
+        {% for w in warnings %}
+        <div style="padding-bottom: 1rem; border-bottom: 1px solid var(--color-border); {% if loop.last %}border-bottom: none; padding-bottom: 0;{% endif %}">
+          <div style="display: flex; align-items: flex-start; gap: 1rem;">
+            <div style="color: {% if w.acknowledged == 'yes' %}var(--color-text-secondary){% else %}var(--color-danger){% endif %};">
+              <i class="fa-solid fa-circle-exclamation"></i>
+            </div>
+            <div style="flex-grow: 1;">
+              <div style="font-weight: 500; margin-bottom: 0.25rem;">{{ w.reason }}</div>
+              <div class="text-muted" style="font-size: 0.75rem;">
+                {{ w.date }} · by {{ w.issued_by }}
+                {% if w.acknowledged == 'yes' %} · <span style="color: var(--color-brand-black); font-weight: 600;">Acknowledged</span>{% endif %}
+              </div>
+            </div>
+          </div>
+        </div>
+        {% endfor %}
+        </div>
+      {% else %}
+        <div class="text-center text-muted" style="padding: 2rem 0;">No warnings issued.</div>
+      {% endif %}
+    </div>
+  </div>
+
+</div>
+
+<!-- Attendance History -->
+<div class="card">
+  <div class="card-header">
+    <h3 class="card-title">Attendance History</h3>
+  </div>
+  <div class="table-responsive">
+    <table class="table">
+      <thead>
+        <tr>
+          <th>Date</th>
+          <th>Status</th>
+          <th>Category</th>
+          <th>Notes</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for rec in att_summary.records %}
+        <tr>
+          <td style="font-weight: 500;">{{ rec.date }}</td>
+          <td>
+            <span class="badge badge-{% if rec.status == 'present' %}present{% elif rec.status == 'present_late' %}late{% elif rec.status == 'absent' %}absent{% elif rec.status == 'on_leave' %}info{% else %}inactive{% endif %}">
+              {{ rec.status | replace('_', ' ') | title }}
+            </span>
+          </td>
+          <td class="text-muted">{{ rec.category }}</td>
+          <td class="text-muted" style="font-size: 0.875rem;">{{ rec.notes or '—' }}</td>
+        </tr>
+        {% else %}
+        <tr><td colspan="4" class="text-center text-muted" style="padding: 3rem 0;">No attendance records</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ── Performance Reports ────────────────────────────────────────────────── -->
+<div class="grid-cols-2 mt-4" style="gap: 2rem;">
+  
+  <!-- Issue Form -->
+  <div class="card">
+    <div class="card-header">
+      <h3 class="card-title">Issue Performance Report</h3>
+    </div>
+    <div class="card-body">
+      <form method="POST" action="{{ url_for('manager.issue_performance') }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <input type="hidden" name="student_id" value="{{ student.id }}">
+        
+        <div class="form-group">
+          <label class="form-label">Report Type</label>
+          <select name="report_type" class="form-select" required>
+            <option value="Weekly">Weekly Report</option>
+            <option value="Monthly">Monthly Report</option>
+          </select>
+        </div>
+        
+        <div class="form-group">
+          <label class="form-label">Rating</label>
+          <select name="rating" class="form-select" required>
+            <option value="Excellent">Excellent</option>
+            <option value="Good">Good</option>
+            <option value="Need Improvement">Need Improvement</option>
+            <option value="Bad">Bad</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Discipline Score (Out of 10)</label>
+          <input type="number" name="discipline" class="form-control" min="1" max="10" placeholder="e.g. 8" required>
+        </div>
+        
+        <div class="form-group mb-4">
+          <label class="form-label">Feedback Notes</label>
+          <textarea name="feedback" class="form-control" rows="4" placeholder="Provide detailed feedback on their performance..." required></textarea>
+        </div>
+        
+        <button type="submit" class="btn btn-primary" style="width: 100%;" data-confirm="Submit this performance report?">
+          Submit Report <i class="fa-solid fa-paper-plane"></i>
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Past Reports -->
+  <div class="card">
+    <div class="card-header">
+      <h3 class="card-title">Past Performance Reports</h3>
+    </div>
+    <div class="card-body">
+      {% if perf_reports %}
+        <div style="display: flex; flex-direction: column; gap: 1rem;">
+        {% for pr in perf_reports|reverse %}
+          <div style="padding-bottom: 1rem; border-bottom: 1px solid var(--color-border); {% if loop.last %}border-bottom: none; padding-bottom: 0;{% endif %}">
+            <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 0.5rem;">
+              <div style="font-weight: 600;">
+                {{ pr.report_type }} Report
+                <span class="badge {% if pr.rating == 'Excellent' %}badge-success{% elif pr.rating == 'Good' %}badge-admin{% elif pr.rating == 'Need Improvement' %}badge-warning{% else %}badge-danger{% endif %}" style="margin-left: 0.5rem;">
+                  {{ pr.rating }}
+                </span>
+                <span class="badge badge-neutral" style="margin-left: 0.25rem;">Discipline: {{ pr.discipline }}/10</span>
+              </div>
+              <div class="text-muted" style="font-size: 0.75rem;">{{ pr.created_at[:10] }}</div>
+            </div>
+            <div class="text-muted" style="font-size: 0.875rem;">
+              {{ pr.feedback }}
+            </div>
+          </div>
+        {% endfor %}
+        </div>
+      {% else %}
+        <div class="text-center text-muted" style="padding: 2rem 0;">No performance reports issued yet.</div>
+      {% endif %}
+    </div>
+  </div>
+
+</div>
+
+{% endblock %}
