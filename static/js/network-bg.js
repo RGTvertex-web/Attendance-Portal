@@ -9,11 +9,11 @@
     const ctx = canvas.getContext('2d', { alpha: true });
     
     // Configuration
-    const NODE_COUNT = window.innerWidth > 768 ? 60 : 30; // Fewer nodes on mobile
-    const MAX_DISTANCE = 150;
+    const NODE_COUNT = window.innerWidth > 768 ? 120 : 60; // Increased density
+    const MAX_DISTANCE = 180;
     const NODE_RADIUS = 2;
     const SPEED = 0.5;
-    const COLOR = 'rgba(156, 163, 175, 0.4)'; // matches --color-text-muted with opacity
+    const COLOR = 'rgba(156, 163, 175, 0.7)'; // Increased opacity
     
     let nodes = [];
     let animationFrameId;
@@ -21,18 +21,20 @@
     
     // Resize handler
     function resize() {
-        canvas.width = window.innerWidth;
-        canvas.height = window.innerHeight;
+        // Handle high DPI displays for crisp rendering
+        const dpr = window.devicePixelRatio || 1;
+        canvas.width = window.innerWidth * dpr;
+        canvas.height = window.innerHeight * dpr;
+        ctx.scale(dpr, dpr);
     }
     
     window.addEventListener('resize', resize);
     resize();
 
-    // Node class
     class Node {
         constructor() {
-            this.x = Math.random() * canvas.width;
-            this.y = Math.random() * canvas.height;
+            this.x = Math.random() * window.innerWidth;
+            this.y = Math.random() * window.innerHeight;
             this.vx = (Math.random() - 0.5) * SPEED;
             this.vy = (Math.random() - 0.5) * SPEED;
         }
@@ -41,9 +43,9 @@
             this.x += this.vx;
             this.y += this.vy;
 
-            // Bounce off edges
-            if (this.x < 0 || this.x > canvas.width) this.vx *= -1;
-            if (this.y < 0 || this.y > canvas.height) this.vy *= -1;
+            // Bounce off edges (using window dimensions due to scale)
+            if (this.x < 0 || this.x > window.innerWidth) this.vx *= -1;
+            if (this.y < 0 || this.y > window.innerHeight) this.vy *= -1;
         }
 
         draw() {
@@ -72,7 +74,7 @@
                     ctx.beginPath();
                     ctx.moveTo(nodes[i].x, nodes[i].y);
                     ctx.lineTo(nodes[j].x, nodes[j].y);
-                    ctx.strokeStyle = `rgba(156, 163, 175, ${opacity * 0.3})`;
+                    ctx.strokeStyle = `rgba(156, 163, 175, ${opacity * 0.6})`;
                     ctx.lineWidth = 1;
                     ctx.stroke();
                 }
@@ -84,7 +86,7 @@
     function animate() {
         if (!isVisible) return; // Pause if tab is inactive
         
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.clearRect(0, 0, window.innerWidth, window.innerHeight);
         
         nodes.forEach(node => {
             node.update();
