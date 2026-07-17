@@ -1,0 +1,115 @@
+{% extends "base_dashboard.html" %}
+
+{% block page_title %}Leave Request{% endblock %}
+
+{% block content %}
+<div style="max-width: 800px; margin: 2rem auto;">
+  
+  <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 2rem;">
+    <div>
+      <h1 class="hero-title" style="font-size: 2rem; margin-bottom: 0.5rem;">Leave Request</h1>
+      <p class="text-muted">Manage your leave balance and applications.</p>
+    </div>
+  </div>
+
+  <div class="row" style="display: flex; gap: 1rem; margin-bottom: 2rem;">
+    <div class="card" style="flex: 1; text-align: center; padding: 1.5rem;">
+      <h3 class="text-muted" style="font-size: 0.875rem; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.5rem;">Total Allotted</h3>
+      <div style="font-size: 2.5rem; font-weight: 700; font-family: Georgia, serif;">{{ total_allotted }}</div>
+    </div>
+    <div class="card" style="flex: 1; text-align: center; padding: 1.5rem;">
+      <h3 class="text-muted" style="font-size: 0.875rem; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.5rem;">Used (Approved)</h3>
+      <div style="font-size: 2.5rem; font-weight: 700; font-family: Georgia, serif;">{{ used_days }}</div>
+    </div>
+    <div class="card" style="flex: 1; text-align: center; padding: 1.5rem; background-color: var(--color-brand-black); color: white;">
+      <h3 style="font-size: 0.875rem; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.5rem; color: #a0a0a0;">Remaining</h3>
+      <div style="font-size: 2.5rem; font-weight: 700; font-family: Georgia, serif;">{{ remaining_days }}</div>
+    </div>
+  </div>
+
+  <div class="card" style="margin-bottom: 2rem;">
+    <div class="card-header" style="border-bottom: 1px solid var(--color-border); padding: 1.5rem; font-weight: 600;">
+      Apply for Leave
+    </div>
+    <div class="card-body" style="padding: 1.5rem;">
+      <form method="POST" action="{{ url_for('intern.leave') }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        
+        <div style="display: flex; gap: 1rem; margin-bottom: 1rem;">
+          <div class="form-group" style="flex: 1;">
+            <label class="form-label">Start Date</label>
+            <input type="date" name="start_date" class="form-control" required>
+          </div>
+          <div class="form-group" style="flex: 1;">
+            <label class="form-label">End Date (Inclusive)</label>
+            <input type="date" name="end_date" class="form-control" required>
+          </div>
+        </div>
+
+        <div class="form-group mb-4">
+          <label class="form-label">Reason for Leave</label>
+          <textarea name="reason" class="form-control" rows="3" required placeholder="Please provide a brief reason..."></textarea>
+        </div>
+
+        <button type="submit" class="btn btn-primary">
+          Submit Request <i class="fa-solid fa-arrow-right"></i>
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header" style="border-bottom: 1px solid var(--color-border); padding: 1.5rem; font-weight: 600;">
+      Leave History
+    </div>
+    <div class="card-body" style="padding: 0;">
+      <table class="table" style="width: 100%; border-collapse: collapse;">
+        <thead>
+          <tr style="border-bottom: 1px solid var(--color-border); background: var(--color-surface);">
+            <th style="padding: 1rem 1.5rem; text-align: left; font-weight: 500; font-size: 0.875rem; color: var(--color-text-muted);">Duration</th>
+            <th style="padding: 1rem 1.5rem; text-align: left; font-weight: 500; font-size: 0.875rem; color: var(--color-text-muted);">Days</th>
+            <th style="padding: 1rem 1.5rem; text-align: left; font-weight: 500; font-size: 0.875rem; color: var(--color-text-muted);">Status</th>
+            <th style="padding: 1rem 1.5rem; text-align: left; font-weight: 500; font-size: 0.875rem; color: var(--color-text-muted);">Remarks</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for l in leaves %}
+          <tr style="border-bottom: 1px solid var(--color-border);">
+            <td style="padding: 1rem 1.5rem; font-size: 0.875rem;">
+              <div style="font-weight: 500;">{{ l.start_date }}</div>
+              <div class="text-muted" style="font-size: 0.75rem;">to {{ l.end_date }}</div>
+            </td>
+            <td style="padding: 1rem 1.5rem; font-size: 0.875rem;">{{ l.days_requested }}</td>
+            <td style="padding: 1rem 1.5rem; font-size: 0.875rem;">
+              {% if l.status == 'approved' %}
+                <span class="badge" style="background: #e6f4ea; color: #137333; padding: 0.25rem 0.5rem; border-radius: 99px; font-size: 0.75rem;">Approved</span>
+              {% elif l.status == 'rejected' %}
+                <span class="badge" style="background: #fce8e6; color: #c5221f; padding: 0.25rem 0.5rem; border-radius: 99px; font-size: 0.75rem;">Rejected</span>
+              {% else %}
+                <span class="badge" style="background: var(--color-surface); color: var(--color-text-muted); padding: 0.25rem 0.5rem; border-radius: 99px; border: 1px solid var(--color-border); font-size: 0.75rem;">Pending</span>
+              {% endif %}
+            </td>
+            <td style="padding: 1rem 1.5rem; font-size: 0.875rem;">
+              {% if l.remarks %}
+                <div class="text-muted" style="max-width: 200px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="{{ l.remarks }}">
+                  {{ l.remarks }}
+                </div>
+              {% else %}
+                -
+              {% endif %}
+            </td>
+          </tr>
+          {% else %}
+          <tr>
+            <td colspan="4" style="padding: 2rem; text-align: center; color: var(--color-text-muted);">
+              You haven't requested any leaves yet.
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+{% endblock %}

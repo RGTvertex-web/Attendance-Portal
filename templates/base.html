@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Creator Attendance Portal</title>
+  
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <!-- Sans Serif for UI/Body -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <!-- Serif for Headings -->
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet">
+  
+  <!-- FontAwesome (using thin/regular weights for minimal look) -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"/>
+  
+  <!-- Custom CSS -->
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/theme.css') }}">
+</head>
+<body>
+  
+  <div class="app-container">
+    <!-- Topbar Navigation -->
+    <header class="topbar">
+      <div class="topbar-left">
+        <a href="/" class="brand">
+          <div class="brand-mark"></div>
+          Creator Portal
+        </a>
+        
+        {% if g.user %}
+        <nav class="nav-links">
+          {% if g.user_role == 'admin' %}
+            <a href="{{ url_for('admin.dashboard') }}" class="nav-item {% if request.endpoint == 'admin.dashboard' %}active{% endif %}">Dashboard</a>
+            <a href="{{ url_for('admin.users') }}" class="nav-item {% if request.endpoint == 'admin.users' %}active{% endif %}">Users</a>
+            <a href="{{ url_for('admin.attendance') }}" class="nav-item {% if request.endpoint == 'admin.attendance' %}active{% endif %}">Attendance</a>
+            <a href="{{ url_for('reports.index') }}" class="nav-item {% if 'reports' in request.endpoint %}active{% endif %}">Reports</a>
+            
+          {% elif g.user_role == 'manager' %}
+            <a href="{{ url_for('manager.dashboard') }}" class="nav-item {% if request.endpoint == 'manager.dashboard' %}active{% endif %}">Dashboard</a>
+            <a href="{{ url_for('manager.attendance') }}" class="nav-item {% if request.endpoint == 'manager.attendance' %}active{% endif %}">Attendance</a>
+            <a href="{{ url_for('reports.index') }}" class="nav-item {% if 'reports' in request.endpoint %}active{% endif %}">Reports</a>
+            <a href="{{ url_for('manager.leaves') }}" class="nav-item {% if request.endpoint == 'manager.leaves' or request.endpoint == 'manager.leave_detail' %}active{% endif %}">Leaves</a>
+            
+          {% elif g.user_role == 'student' %}
+            <a href="{{ url_for('student.dashboard') }}" class="nav-item {% if request.endpoint == 'student.dashboard' %}active{% endif %}">My Dashboard</a>
+            <a href="{{ url_for('student.leave') }}" class="nav-item {% if request.endpoint == 'student.leave' %}active{% endif %}">Leave Request</a>
+          {% endif %}
+        </nav>
+        {% endif %}
+      </div>
+
+      <div class="topbar-right">
+        {% if g.user %}
+          <div class="user-profile">
+            <div class="user-avatar">{{ g.user.name[0].upper() if g.user.name else '?' }}</div>
+            <div class="user-name">{{ g.user.name }}</div>
+          </div>
+          <a href="{{ url_for('auth.logout') }}" class="btn btn-outline btn-sm">Log out</a>
+        {% else %}
+          <a href="{{ url_for('auth.login') }}" class="nav-item">Log in</a>
+          <a href="{{ url_for('auth.signup') }}" class="btn btn-outline btn-sm">Sign up</a>
+        {% endif %}
+      </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="main-content">
+      <div class="page-container">
+        <!-- Flash Messages -->
+        {% with messages = get_flashed_messages(with_categories=true) %}
+          {% if messages %}
+            {% for category, message in messages %}
+              <div class="alert alert-{{ category }}">
+                {% if category == 'success' %}<i class="fa-solid fa-check"></i>
+                {% elif category == 'danger' or category == 'error' %}<i class="fa-solid fa-triangle-exclamation"></i>
+                {% elif category == 'warning' %}<i class="fa-solid fa-bell"></i>
+                {% else %}<i class="fa-solid fa-info"></i>{% endif %}
+                {{ message }}
+              </div>
+            {% endfor %}
+          {% endif %}
+        {% endwith %}
+        
+        {% block content %}{% endblock %}
+      </div>
+    </main>
+  </div>
+
+  {% block scripts %}{% endblock %}
+</body>
+</html>
