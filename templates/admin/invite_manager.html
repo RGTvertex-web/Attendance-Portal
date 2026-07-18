@@ -1,0 +1,43 @@
+{% extends "base_dashboard.html" %}
+
+{% block page_title %}Invite Manager{% endblock %}
+
+{% block content %}
+<div style="max-width: 600px; margin: 0 auto;">
+  
+  <h1 class="hero-title" style="font-size: 2.5rem; margin-bottom: 0.5rem;">Invite Manager</h1>
+  <p class="text-muted" style="margin-bottom: 2rem;">Send a secure sign-up link to a new manager.</p>
+
+  <div class="card">
+    <div class="card-body">
+      <form method="POST" action="{{ url_for('admin.invite_manager') }}" novalidate>
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+        <div class="form-group">
+          <label class="form-label" for="email">Manager Email Address *</label>
+          <input id="email" type="email" name="email" class="form-control" required placeholder="manager@company.com">
+          <div class="text-muted mt-1" style="font-size: 0.75rem;">The invite link will be sent to this address.</div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="department">Department *</label>
+          <select id="department" name="department" class="form-select" required>
+            <option value="">Select Department...</option>
+            {% for d in departments %}
+            <option value="{{ d }}">{{ d }}</option>
+            {% endfor %}
+          </select>
+          <div class="text-muted mt-1" style="font-size: 0.75rem;">The manager will only be able to view interns in this department.</div>
+        </div>
+
+        <div style="display: flex; gap: 1rem; align-items: center; margin-top: 2rem;">
+          <button type="submit" class="btn btn-primary">
+            Send Invite <i class="fa-solid fa-paper-plane" style="margin-left: 0.5rem;"></i>
+          </button>
+          <a href="{{ url_for('admin.users') }}" class="btn btn-outline">Cancel</a>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}
