@@ -97,11 +97,19 @@ def _get_client() -> gspread.Client:
     return _client
 
 
+_spreadsheet: Optional[gspread.Spreadsheet] = None
+_spreadsheet_lock = Lock()
+
 def _get_spreadsheet() -> gspread.Spreadsheet:
-    spreadsheet_id = os.environ.get("SPREADSHEET_ID")
-    if not spreadsheet_id:
-        raise RuntimeError("SPREADSHEET_ID env var not set")
-    return _get_client().open_by_key(spreadsheet_id)
+    global _spreadsheet
+    if _spreadsheet is None:
+        with _spreadsheet_lock:
+            if _spreadsheet is None:
+                spreadsheet_id = os.environ.get("SPREADSHEET_ID")
+                if not spreadsheet_id:
+                    raise RuntimeError("SPREADSHEET_ID env var not set")
+                _spreadsheet = _get_client().open_by_key(spreadsheet_id)
+    return _spreadsheet
 
 
 def _get_sheet(name: str) -> gspread.Worksheet:
@@ -287,9 +295,17 @@ def update_submission(submission_id: str, **fields) -> bool:
 # ══════════════════════════════════════════════════════════════════════════════
 
 def get_all_attendance() -> List[Dict]:
+    from flask import g, has_app_context
+    if has_app_context() and hasattr(g, '_all_attendance'):
+        return g._all_attendance
+
     sheet = _get_sheet("Attendance")
     rows = sheet.get_all_values()[1:]
-    return _rows_to_dicts(rows, _ATTENDANCE_COLS)
+    res = _rows_to_dicts(rows, _ATTENDANCE_COLS)
+    
+    if has_app_context():
+        g._all_attendance = res
+    return res
 
 
 def get_attendance_for_student(intern_id: str) -> List[Dict]:
@@ -349,9 +365,17 @@ def override_attendance(intern_id: str, date_str: str, linked_task_id: str,
 # ══════════════════════════════════════════════════════════════════════════════
 
 def get_all_warnings() -> List[Dict]:
+    from flask import g, has_app_context
+    if has_app_context() and hasattr(g, '_all_warnings'):
+        return g._all_warnings
+
     sheet = _get_sheet("Warnings")
     rows = sheet.get_all_values()[1:]
-    return _rows_to_dicts(rows, _WARNINGS_COLS)
+    res = _rows_to_dicts(rows, _WARNINGS_COLS)
+    
+    if has_app_context():
+        g._all_warnings = res
+    return res
 
 
 def get_warnings_for_student(intern_id: str) -> List[Dict]:
@@ -519,12 +543,17 @@ def review_report(report_id: str, reviewed_by: str, review_notes: str) -> bool:
 # ══════════════════════════════════════════════════════════════════════════════
 
 def get_all_performance_reports() -> List[Dict]:
-    try:
-        sheet = _get_sheet("Performance")
-        rows = sheet.get_all_values()[1:]
-        return _rows_to_dicts(rows, _PERFORMANCE_COLS)
-    except Exception as e:
-        return []
+    from flask import g, has_app_context
+    if has_app_context() and hasattr(g, '_all_performance'):
+        return g._all_performance
+
+    sheet = _get_sheet("Performance")
+    rows = sheet.get_all_values()[1:]
+    res = _rows_to_dicts(rows, _PERFORMANCE_COLS)
+    
+    if has_app_context():
+        g._all_performance = res
+    return res
 
 def get_performance_reports_for_student(intern_id: str) -> List[Dict]:
     return [p for p in get_all_performance_reports() if p["intern_id"] == intern_id]
