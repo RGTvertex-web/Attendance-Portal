@@ -68,7 +68,8 @@ def create_app():
                 session.pop("user_id", None)
 
     # ── APScheduler ────────────────────────────────────────────────────────────
-    if not app.testing:
+    # Do not start background threads on Vercel serverless runtime
+    if not app.testing and not os.environ.get("VERCEL"):
         from scheduler import start_scheduler
         start_scheduler(app)
 
