@@ -1,0 +1,304 @@
+{% extends "base_dashboard.html" %}
+
+{% block page_title %}My Dashboard{% endblock %}
+
+{% block content %}
+<!-- ── Hero Banner ─────────────────────────────────────────────────────────── -->
+<div class="hero-banner">
+  <div class="hero-tag">
+    <i class="fa-solid fa-circle" style="color: #111; font-size:0.5rem;"></i>
+    Attendance: {{ att_summary.percentage }}% &nbsp;·&nbsp; {{ att_summary.present }} Present &nbsp;·&nbsp; {{ att_summary.absent }} Absent
+  </div>
+  <h1 class="hero-headline">Welcome back, {{ g.user.name }}.</h1>
+  <p class="hero-sub">Submit your daily report and track your attendance below.</p>
+</div>
+
+<!-- ── At-Risk banner ──────────────────────────────────────────────────────── -->
+{% if g.user.status == 'at_risk' %}
+<div class="alert alert-danger" style="margin-bottom: 2rem;">
+  <span style="font-size:1.5rem;">🔥</span>
+  <div>
+    <div style="font-weight: 600;">You are flagged as At-Risk</div>
+    <div class="text-muted" style="font-size: 0.875rem;">Your attendance is below the required threshold. Contact your manager immediately.</div>
+  </div>
+</div>
+{% endif %}
+
+<!-- ── Stat Cards ─────────────────────────────────────────────────────────── -->
+<div class="kpi-row">
+  <div class="kpi-card">
+    <div class="kpi-icon icon-green"><i class="fa-solid fa-check"></i></div>
+    <div class="kpi-details">
+      <div class="kpi-value">{{ att_summary.present }}</div>
+      <div class="kpi-label">Present Days</div>
+    </div>
+  </div>
+  <div class="kpi-card">
+    <div class="kpi-icon icon-blue"><i class="fa-solid fa-file-signature"></i></div>
+    <div class="kpi-details">
+      <div class="kpi-value">{{ submissions | length }}</div>
+      <div class="kpi-label">Total Reports</div>
+    </div>
+  </div>
+  <div class="kpi-card">
+    <div class="kpi-icon icon-red"><i class="fa-solid fa-xmark"></i></div>
+    <div class="kpi-details">
+      <div class="kpi-value">{{ att_summary.absent }}</div>
+      <div class="kpi-label">Absent Days</div>
+    </div>
+  </div>
+  <div class="kpi-card">
+    <div class="kpi-icon icon-amber"><i class="fa-solid fa-percent"></i></div>
+    <div class="kpi-details">
+      <div class="kpi-value">{{ att_summary.percentage }}%</div>
+      <div class="kpi-label">Attendance Rate</div>
+    </div>
+  </div>
+</div>
+
+<!-- ── Charts Row ─────────────────────────────────────────────────────────── -->
+<div class="charts-row">
+  <div class="card mb-0">
+    <div class="card-header">
+      <h3 class="card-title">Attendance Trends</h3>
+    </div>
+    <div class="card-body" style="height: 250px;">
+      <canvas id="trendChart"></canvas>
+    </div>
+  </div>
+  <div class="card mb-0">
+    <div class="card-header">
+      <h3 class="card-title">My Status</h3>
+    </div>
+    <div class="card-body" style="height: 250px; display: flex; justify-content: center;">
+      <canvas id="statusChart"></canvas>
+    </div>
+  </div>
+</div>
+
+<!-- ── Main Grid ───────────────────────────────────────────────────────────── -->
+<div class="grid-cols-2 mt-4 mb-4">
+
+  <!-- Left: Submit Daily Report -->
+  <div class="card mb-0">
+    <div class="card-header">
+      <h3 class="card-title">Submit Daily Report</h3>
+    </div>
+    <div class="card-body">
+      <form method="POST" action="{{ url_for('intern.submit_report') }}" novalidate>
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        
+        <div class="form-group">
+          <label class="form-label" for="task_given">What task was given today?</label>
+          <textarea id="task_given" name="task_given" class="form-control" rows="2" placeholder="Describe the task given in the meeting..." required></textarea>
+        </div>
+        
+        <div class="form-group">
+          <label class="form-label" for="task_done">How much is done?</label>
+          <textarea id="task_done" name="task_done" class="form-control" rows="3" placeholder="Describe what you completed..." required></textarea>
+        </div>
+        
+        <div class="form-group mb-4">
+          <label class="form-label" for="task_remaining">How much is remaining?</label>
+          <textarea id="task_remaining" name="task_remaining" class="form-control" rows="2" placeholder="What is left for tomorrow? (Optional)"></textarea>
+        </div>
+        
+        <button type="submit" class="btn btn-primary w-100">Submit Report <i class="fa-solid fa-arrow-right"></i></button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Right: Attendance history + Warnings -->
+  <div style="display: flex; flex-direction: column; gap: 1.5rem;">
+
+    <!-- Attendance Calendar -->
+    <div class="card mb-0">
+      <div class="card-header">
+        <h3 class="card-title">Recent Attendance</h3>
+      </div>
+      <div class="card-body">
+        <div style="display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 1.5rem;">
+          {% for rec in att_summary.records[:60] %}
+            <div title="{{ rec.date }} — {{ rec.status | replace('_',' ') | title }} ({{ rec.category }})"
+                 style="width: 14px; height: 14px; border-radius: 3px;
+                        {% if rec.status == 'present' %}background-color: var(--color-success);{% elif rec.status == 'present_late' %}background-color: var(--color-warning);{% elif rec.status == 'on_leave' %}background-color: var(--color-info);{% else %}background-color: var(--color-danger);{% endif %}">
+            </div>
+          {% else %}
+            <div class="text-muted text-sm">No records yet</div>
+          {% endfor %}
+        </div>
+        <div style="display: flex; gap: 1rem; font-size: 0.75rem; color: var(--color-text-secondary);">
+          <div style="display: flex; align-items: center; gap: 0.25rem;">
+            <div style="width: 10px; height: 10px; background-color: var(--color-success); border-radius: 2px;"></div> Present
+          </div>
+          <div style="display: flex; align-items: center; gap: 0.25rem;">
+            <div style="width: 10px; height: 10px; background-color: var(--color-warning); border-radius: 2px;"></div> Late
+          </div>
+          <div style="display: flex; align-items: center; gap: 0.25rem;">
+            <div style="width: 10px; height: 10px; background-color: var(--color-danger); border-radius: 2px;"></div> Absent
+          </div>
+          <div style="display: flex; align-items: center; gap: 0.25rem;">
+            <div style="width: 10px; height: 10px; background-color: var(--color-info); border-radius: 2px;"></div> Leave
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Warnings -->
+    {% if warnings %}
+    <div class="card mb-0">
+      <div class="card-header">
+        <h3 class="card-title">My Warnings ({{ warnings | length }})</h3>
+      </div>
+      <div class="card-body" style="padding: 0;">
+        <div class="table-responsive">
+          <table class="table mb-0">
+            <tbody>
+              {% for w in warnings %}
+              <tr>
+                <td>
+                  <div style="display: flex; align-items: flex-start; gap: 0.75rem;">
+                    <div style="color: var(--color-danger); padding-top:2px;"><i class="fa-solid fa-circle-exclamation"></i></div>
+                    <div>
+                      <div style="font-weight: 500; margin-bottom: 0.25rem;">{{ w.reason[:100] }}{% if w.reason|length > 100 %}…{% endif %}</div>
+                      <div class="text-muted" style="font-size: 0.75rem;">{{ w.date }} · By {{ w.issued_by }}</div>
+                    </div>
+                  </div>
+                </td>
+                <td style="text-align:right;">
+                  {% if w.acknowledged == 'yes' %}
+                    <span class="badge badge-success">Ack</span>
+                  {% else %}
+                    <span class="badge badge-warning">New</span>
+                  {% endif %}
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+    {% endif %}
+
+    <!-- Performance Reports -->
+    {% if perf_reports %}
+    <div class="card mb-0">
+      <div class="card-header">
+        <h3 class="card-title">Performance Reports</h3>
+      </div>
+      <div class="card-body" style="padding: 0;">
+        <table class="table mb-0">
+          <tbody>
+          {% for pr in perf_reports %}
+            <tr>
+              <td>
+                <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 0.5rem;">
+                  <div style="font-weight: 600;">
+                    {{ pr.report_type }}
+                    <span class="badge {% if pr.rating == 'Excellent' %}badge-success{% elif pr.rating == 'Good' %}badge-info{% elif pr.rating == 'Need Improvement' %}badge-warning{% else %}badge-danger{% endif %}" style="margin-left: 0.5rem;">
+                      {{ pr.rating }}
+                    </span>
+                  </div>
+                  <div class="text-muted" style="font-size: 0.75rem;">{{ pr.created_at[:10] }}</div>
+                </div>
+                <div class="text-muted" style="font-size: 0.875rem;">
+                  {{ pr.feedback }}
+                </div>
+              </td>
+            </tr>
+          {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+    {% endif %}
+
+  </div>
+</div>
+
+<!-- ── Past Reports ───────────────────────────────────────────────────────────── -->
+{% if submissions %}
+<div class="card mt-4">
+  <div class="card-header">
+    <h3 class="card-title">Past Reports</h3>
+  </div>
+  <div class="card-body">
+    <div style="display: flex; flex-direction: column; gap: 1.5rem;">
+      {% for sub in submissions %}
+      <div style="padding-bottom: 1.5rem; border-bottom: 1px solid var(--color-border); {% if loop.last %}border-bottom: none; padding-bottom: 0;{% endif %}">
+        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.75rem;">
+          <div style="font-weight: 600;">Report ID: {{ sub.task_id }}</div>
+          <div class="text-muted" style="font-size: 0.75rem;">{{ sub.submitted_at[:10] }}</div>
+        </div>
+        <div style="font-size: 0.875rem;">
+          <div style="margin-bottom: 0.5rem;"><strong>Given:</strong> {{ sub.report_data.given }}</div>
+          <div style="margin-bottom: 0.5rem;"><strong>Done:</strong> {{ sub.report_data.done }}</div>
+          {% if sub.report_data.remaining %}
+          <div><strong>Remaining:</strong> {{ sub.report_data.remaining }}</div>
+          {% endif %}
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script>
+  document.addEventListener("DOMContentLoaded", function() {
+    const present = {{ att_summary.present }};
+    const absent = {{ att_summary.absent }};
+    const onLeave = {{ att_summary.on_leave }};
+    const late = {{ att_summary.late }};
+    
+    // Status Donut Chart
+    new Chart(document.getElementById('statusChart'), {
+      type: 'doughnut',
+      data: {
+        labels: ['Present', 'Late', 'Absent', 'On Leave'],
+        datasets: [{
+          data: [present, late, absent, onLeave],
+          backgroundColor: ['#111111', '#9ca3af', '#7a1f2b', '#6b6b6b'],
+          borderWidth: 0
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { position: 'bottom' }
+        },
+        cutout: '70%'
+      }
+    });
+
+    // Trend Line Chart (Real Data)
+    new Chart(document.getElementById('trendChart'), {
+      type: 'bar',
+      data: {
+        labels: {{ trend.labels | tojson }},
+        datasets: [{
+          label: 'Attendance Rate',
+          data: {{ trend.values | tojson }},
+          backgroundColor: '#111111',
+          borderRadius: 4
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { display: false }
+        },
+        scales: {
+          y: { beginAtZero: true, max: 100 }
+        }
+      }
+    });
+  });
+</script>
+{% endblock %}
