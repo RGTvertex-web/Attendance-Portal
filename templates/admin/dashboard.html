@@ -1,0 +1,425 @@
+{% extends "base_dashboard.html" %}
+
+{% block page_title %}Admin Dashboard{% endblock %}
+
+{% block content %}
+<!-- ── Hero Banner ─────────────────────────────────────────────────────────── -->
+<div class="hero-banner" style="display: flex; justify-content: space-between; align-items: flex-end;">
+  <div>
+    <div class="hero-tag">
+      <i class="fa-solid fa-circle" style="color: #111; font-size:0.5rem;"></i>
+      {{ org.today_present }} Present &nbsp;·&nbsp; {{ org.today_absent }} Absent &nbsp;·&nbsp; {{ org.unack_warnings }} Unread Warnings
+    </div>
+    <h1 class="hero-headline">Welcome back, {{ g.user.name }}.</h1>
+    <p class="hero-sub mb-0">Here's your organisation's snapshot for today.</p>
+  </div>
+  
+  <!-- Department Filter -->
+  <form method="GET" action="{{ url_for('admin.dashboard') }}" style="display: flex; gap: 0.5rem; align-items: center; margin-right: 1rem;">
+    <select name="department" class="form-select" onchange="this.form.submit()" style="background: rgba(255,255,255,0.9); border: none; min-width: 150px;">
+      <option value="">All Departments</option>
+      {% for d in DEPARTMENTS %}
+      <option value="{{ d }}" {% if department_filter == d %}selected{% endif %}>{{ d }}</option>
+      {% endfor %}
+    </select>
+  </form>
+  
+  <!-- Exports -->
+  <div style="display: flex; gap: 0.5rem;">
+    <button class="btn btn-outline" type="button" data-bs-toggle="modal" data-bs-target="#exportModal" style="background: white; border-color: rgba(255,255,255,0.2);">
+      <i class="fa-solid fa-download"></i> Export Data
+    </button>
+  </div>
+</div>
+
+<!-- ── Stat Cards ─────────────────────────────────────────────────────────── -->
+<div class="kpi-row">
+  <div class="kpi-card">
+    <div class="kpi-icon icon-blue"><i class="fa-solid fa-users"></i></div>
+    <div class="kpi-details">
+      <div class="kpi-value">{{ org.total_students }}</div>
+      <div class="kpi-label">Active Interns</div>
+    </div>
+  </div>
+  <div class="kpi-card">
+    <div class="kpi-icon icon-green"><i class="fa-solid fa-check"></i></div>
+    <div class="kpi-details">
+      <div class="kpi-value">{{ org.today_present }}</div>
+      <div class="kpi-label">Present Today</div>
+    </div>
+  </div>
+  <div class="kpi-card">
+    <div class="kpi-icon icon-red"><i class="fa-solid fa-xmark"></i></div>
+    <div class="kpi-details">
+      <div class="kpi-value">{{ org.today_absent }}</div>
+      <div class="kpi-label">Absent Today</div>
+    </div>
+  </div>
+  <div class="kpi-card">
+    <div class="kpi-icon icon-amber"><i class="fa-solid fa-triangle-exclamation"></i></div>
+    <div class="kpi-details">
+      <div class="kpi-value">{{ org.unack_warnings }}</div>
+      <div class="kpi-label">Unread Warnings</div>
+    </div>
+  </div>
+</div>
+
+<!-- ── Department Breakdown ────────────────────────────────────────────────── -->
+<h3 class="card-title mt-4 mb-3" style="font-size: 0.9rem; font-weight: 600; color: var(--color-text-secondary); text-transform: uppercase; letter-spacing: 0.05em; padding-left: 0.25rem;">Interns by Department</h3>
+<div class="kpi-row mb-4" style="grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));">
+  {% for dept, count in dept_stats.items() %}
+  <div class="kpi-card" style="padding: 1rem 1.25rem; min-height: auto;">
+    <div class="kpi-icon" style="background-color: var(--color-surface-alt); color: var(--color-text-muted); width: 36px; height: 36px; font-size: 0.9rem;"><i class="fa-solid fa-building"></i></div>
+    <div class="kpi-details">
+      <div class="kpi-value" style="font-size: 1.25rem;">{{ count }}</div>
+      <div class="kpi-label">{{ dept }}</div>
+    </div>
+  </div>
+  {% else %}
+  <div class="text-muted" style="padding-left: 0.25rem;">No interns found.</div>
+  {% endfor %}
+</div>
+
+<!-- ── Charts Row ─────────────────────────────────────────────────────────── -->
+<div class="charts-row">
+  <div class="card mb-0">
+    <div class="card-header">
+      <h3 class="card-title">Attendance Trends (Last 7 Days)</h3>
+    </div>
+    <div class="card-body" style="height: 300px;">
+      <canvas id="trendChart"></canvas>
+    </div>
+  </div>
+  <div class="card mb-0">
+    <div class="card-header">
+      <h3 class="card-title">Today's Status</h3>
+    </div>
+    <div class="card-body" style="height: 300px; display: flex; justify-content: center;">
+      <canvas id="statusChart"></canvas>
+    </div>
+  </div>
+</div>
+
+<h3 class="mb-4 mt-5">Performance Overview</h3>
+<div class="grid-cols-3 mb-4">
+  <div class="card mb-0 text-center">
+    <div class="card-header border-0 pb-0">
+      <h3 class="card-title w-100">Average Score</h3>
+    </div>
+    <div class="card-body">
+      <div style="font-size: 3rem; font-weight: 700; color: var(--color-primary);">{{ perf_analytics.average_score }}</div>
+      <div class="text-muted" style="font-size: 0.875rem;">out of 100</div>
+    </div>
+  </div>
+  
+  <div class="card mb-0">
+    <div class="card-header border-0 pb-0">
+      <h3 class="card-title">Grade Distribution</h3>
+    </div>
+    <div class="card-body">
+      {% for grade, count in perf_analytics.grade_distribution.items() %}
+      <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem; font-size: 0.875rem;">
+        <span>{{ grade }}</span>
+        <span style="font-weight: 600;">{{ count }}</span>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+
+  <div class="card mb-0">
+    <div class="card-header border-0 pb-0">
+      <h3 class="card-title">Department Averages</h3>
+    </div>
+    <div class="card-body">
+      {% for dept, avg in perf_analytics.department_averages.items() %}
+      <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem; font-size: 0.875rem;">
+        <span>{{ dept }}</span>
+        <span style="font-weight: 600;">{{ avg }}</span>
+      </div>
+      {% else %}
+      <div class="text-muted text-center">No data available</div>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+
+<h3 class="mb-4 mt-5">Action Items</h3>
+<div class="grid-cols-2 mb-4">
+  <!-- At-Risk Students -->
+  <div class="card mb-0">
+    <div class="card-header">
+      <h3 class="card-title">At-Risk Students</h3>
+      <span class="badge badge-info">{{ org.at_risk_students | length }} found</span>
+    </div>
+    <div class="card-body" style="padding:0;">
+      {% if org.at_risk_students %}
+        <div class="table-responsive">
+          <table class="table" style="margin-bottom:0;">
+            <tbody>
+              {% for student in org.at_risk_students %}
+              <tr>
+                <td>
+                  <div style="font-weight: 500;">{{ student.name }}</div>
+                  <div class="text-muted" style="font-size: 0.75rem;">Manager: {{ student.manager_id or 'None' }}</div>
+                </td>
+                <td style="text-align: right;">
+                  <span class="badge badge-danger">At Risk</span>
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      {% else %}
+        <div class="text-center text-muted" style="padding: 2rem 0;">No students at risk.</div>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- Recent Warnings -->
+  <div class="card mb-0">
+    <div class="card-header">
+      <h3 class="card-title">Recent Warnings</h3>
+    </div>
+    <div class="card-body" style="padding:0;">
+      {% if recent_warnings %}
+        <div class="table-responsive">
+          <table class="table" style="margin-bottom:0;">
+            <tbody>
+              {% for w in recent_warnings %}
+              <tr>
+                <td>
+                  <div style="font-weight: 500; margin-bottom: 0.25rem;">{{ w.reason[:60] }}{% if w.reason|length > 60 %}...{% endif %}</div>
+                  <div class="text-muted" style="font-size: 0.75rem;">{{ w.intern_id[:8] }}… · {{ w.date }}</div>
+                </td>
+                <td style="text-align: right;">
+                  {% if w.acknowledged == 'yes' %}
+                    <span class="badge badge-success">Ack</span>
+                  {% else %}
+                    <span class="badge badge-warning">New</span>
+                  {% endif %}
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      {% else %}
+        <div class="text-center text-muted" style="padding: 2rem 0;">No warnings issued yet.</div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+<!-- ── Performance Rollup ──────────────────────────────────────────────── -->
+<div class="card mb-4 mt-4">
+  <div class="card-header">
+    <h3 class="card-title">Organization Performance Rollup</h3>
+  </div>
+  <div class="card-body">
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem;">
+      <div>
+        <h4 style="font-size: 1rem; margin-bottom: 1rem;">Grade Distribution</h4>
+        <ul style="list-style: none; padding: 0; margin: 0;">
+          {% for grade, count in perf_analytics.grade_distribution.items() %}
+          <li style="display: flex; justify-content: space-between; align-items: center; padding: 0.5rem 0; border-bottom: 1px solid #e5e7eb;">
+            {{ grade }}
+            <span class="badge badge-primary">{{ count }}</span>
+          </li>
+          {% endfor %}
+        </ul>
+      </div>
+      <div>
+        <h4 style="font-size: 1rem; margin-bottom: 1rem;">Department Averages</h4>
+        <ul style="list-style: none; padding: 0; margin: 0;">
+          {% for dept, avg in perf_analytics.department_averages.items() %}
+          <li style="display: flex; justify-content: space-between; align-items: center; padding: 0.5rem 0; border-bottom: 1px solid #e5e7eb;">
+            {{ dept }}
+            <span style="font-weight: 600;">{{ avg }} / 70</span>
+          </li>
+          {% endfor %}
+        </ul>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── Manual Override Form (collapsed) ─────────────────────────────────── -->
+<details class="card mb-4 mt-4">
+  <summary class="card-header" style="cursor:pointer; font-weight:600; list-style:none;">
+    Override Attendance Record
+  </summary>
+  <div class="card-body">
+    <form method="POST" action="{{ url_for('admin.override_attendance') }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <div class="grid-cols-2">
+        <div class="form-group">
+          <label class="form-label">Student ID</label>
+          <input type="text" name="student_id" class="form-control" placeholder="UUID" required>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Date</label>
+          <input type="date" name="date" class="form-control" required>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Task ID</label>
+          <input type="text" name="linked_task_id" class="form-control" placeholder="UUID" required>
+        </div>
+        <div class="form-group">
+          <label class="form-label">New Status</label>
+          <select name="new_status" class="form-select" required>
+            <option value="present">Present</option>
+            <option value="present_late">Present (Late)</option>
+            <option value="absent">Absent</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Override Notes</label>
+        <input type="text" name="notes" class="form-control" placeholder="Reason for override...">
+      </div>
+      <button type="submit" class="btn btn-primary" data-confirm="Override this attendance record?">Override Record <i class="fa-solid fa-arrow-right"></i></button>
+    </form>
+  </div>
+</details>
+<!-- ── Export Modal ─────────────────────────────────────────────────────────── -->
+<div class="modal fade" id="exportModal" tabindex="-1" aria-labelledby="exportModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content border-0 shadow">
+      <div class="modal-header border-bottom-0 pb-0">
+        <h5 class="modal-title" id="exportModalLabel" style="font-weight: 600;">Export Data</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body pt-3">
+        <form id="exportForm">
+          <div class="mb-3">
+            <label class="form-label text-muted" style="font-size: 0.875rem;">Report Type</label>
+            <select class="form-select" id="exportType" required>
+              <option value="attendance">Attendance</option>
+              <option value="leaves">Leaves</option>
+              <option value="performance">Performance</option>
+            </select>
+          </div>
+          <div class="mb-3">
+            <label class="form-label text-muted" style="font-size: 0.875rem;">Format</label>
+            <select class="form-select" id="exportFormat" required>
+              <option value="csv">CSV (.csv)</option>
+              <option value="excel">Excel (.xlsx)</option>
+              <option value="pdf">PDF (.pdf)</option>
+            </select>
+          </div>
+          <div class="mb-3">
+            <label class="form-label text-muted" style="font-size: 0.875rem;">Date (Optional)</label>
+            <input type="date" class="form-control" id="exportDate">
+            <small class="text-muted" style="font-size: 0.75rem;">For performance, filters by week start/end.</small>
+          </div>
+          <div class="mb-3">
+            <label class="form-label text-muted" style="font-size: 0.875rem;">Department Filter (Optional)</label>
+            <select class="form-select" id="exportDept">
+              <option value="">All Departments</option>
+              {% for d in dept_stats.keys() %}
+              <option value="{{ d }}">{{ d }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="mb-4">
+            <label class="form-label text-muted" style="font-size: 0.875rem;">Manager Filter (Optional)</label>
+            <select class="form-select" id="exportManager">
+              <option value="">All Managers</option>
+              {% for m in managers %}
+              <option value="{{ m.id }}">{{ m.name }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <button type="button" class="btn btn-primary w-100" onclick="submitExport()">Download Report</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script type="application/json" id="trendLabelsData">
+  {{ trend['labels'] | tojson }}
+</script>
+<script type="application/json" id="trendValuesData">
+  {{ trend['values'] | tojson }}
+</script>
+<script>
+  const trendLabelsData = document.getElementById('trendLabelsData');
+  const trendValuesData = document.getElementById('trendValuesData');
+  const trendLabels = trendLabelsData ? JSON.parse(trendLabelsData.textContent) : [];
+  const trendValues = trendValuesData ? JSON.parse(trendValuesData.textContent) : [];
+
+  document.addEventListener("DOMContentLoaded", function() {
+    const present = Number("{{ org.today_present }}") || 0;
+    const absent = Number("{{ org.today_absent }}") || 0;
+    const onLeave = Number("{{ org.today_on_leave }}") || 0;
+    
+    // Status Donut Chart
+    new Chart(document.getElementById('statusChart'), {
+      type: 'doughnut',
+      data: {
+        labels: ['Present', 'Absent', 'On Leave'],
+        datasets: [{
+          data: [present, absent, onLeave],
+          backgroundColor: ['#111111', '#7a1f2b', '#9ca3af'],
+          borderWidth: 0
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { position: 'bottom' }
+        },
+        cutout: '70%'
+      }
+    });
+
+    // Trend Line Chart (Real Data)
+    new Chart(document.getElementById('trendChart'), {
+      type: 'line',
+      data: {
+        labels: trendLabels,
+        datasets: [{
+          label: 'Attendance %',
+          data: trendValues,
+          borderColor: '#111111',
+          backgroundColor: 'rgba(17, 17, 17, 0.06)',
+          tension: 0.4,
+          fill: true
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { display: false }
+        },
+        scales: {
+          y: { beginAtZero: true, max: 100 }
+        }
+      }
+    });
+  });
+
+  function submitExport() {
+    const type = document.getElementById('exportType').value;
+    const format = document.getElementById('exportFormat').value;
+    const date = document.getElementById('exportDate').value;
+    const dept = document.getElementById('exportDept').value;
+    const manager = document.getElementById('exportManager').value;
+    
+    let url = `/admin/exports/${type}/${format}?`;
+    if (date) url += `date=${encodeURIComponent(date)}&`;
+    if (dept) url += `department=${encodeURIComponent(dept)}&`;
+    if (manager) url += `manager_id=${encodeURIComponent(manager)}`;
+    
+    window.location.href = url;
+  }
+</script>
+{% endblock %}

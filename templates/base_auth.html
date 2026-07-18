@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>RGTvertex Intern Portal</title>
+  <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='img/brand/favicon.svg') }}">
+
+  <!-- Fonts: Inter + Playfair Display -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet">
+
+  <!-- FontAwesome -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"/>
+
+  <!-- Theme -->
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/theme.css') }}">
+</head>
+<body class="auth-body"
+  style="background-image: linear-gradient(rgba(255,255,255,0.92), rgba(255,255,255,0.92)),
+         url('{{ url_for('static', filename='img/brand/hero-bg.jpg') }}');
+         background-size: cover; background-position: center; background-attachment: fixed;">
+
+  <div class="auth-container">
+    {% block content %}{% endblock %}
+  </div>
+
+  {% block scripts %}{% endblock %}
+</body>
+</html>

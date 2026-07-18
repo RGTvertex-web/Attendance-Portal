@@ -1,0 +1,76 @@
+{% extends "base_auth.html" %}
+
+{% block page_title %}{% endblock %}
+
+{% block content %}
+<div style="max-width: 440px; margin: 4rem auto;">
+  <div class="auth-card text-left">
+    <div class="auth-card-body">
+      <div class="auth-logo" style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 2rem;">
+        <div style="width: 40px; height: 40px; background-color: #ffffff; border: 1px solid #e5e7eb; border-radius: 10px; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
+          <img src="{{ url_for('static', filename='img/brand/favicon.svg') }}" alt="RGTvertex Icon" style="height: 24px;">
+        </div>
+        <span style="font-family: 'Playfair Display', serif; font-weight: 800; font-size: 1.5rem; color: #111827; margin: 0;">RGTvertex</span>
+      </div>
+      <h1 class="auth-title">Welcome back.</h1>
+      <p class="auth-subtitle">Sign in to your Creator Portal account.</p>
+
+      {% if error %}
+      <div class="alert alert-danger" style="padding: 0.75rem 1rem;">
+        <i class="fa-solid fa-triangle-exclamation"></i> {{ error }}
+      </div>
+      {% endif %}
+
+      <form method="POST" action="{{ url_for('auth.login') }}" novalidate>
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+        <div class="form-group">
+          <label class="form-label" for="email">Email Address</label>
+          <div class="input-icon-wrapper">
+            <i class="fa-regular fa-envelope input-icon"></i>
+            <input
+              id="email"
+              type="email"
+              name="email"
+              class="form-control with-icon"
+              placeholder="you@company.com"
+              value="{{ request.form.get('email', '') }}"
+              required
+              autocomplete="email"
+              autofocus>
+          </div>
+        </div>
+
+        <div class="form-group mb-4">
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <label class="form-label" for="password" style="margin: 0;">Password</label>
+            <a href="#" class="text-muted" style="font-size: 0.75rem;">Forgot password?</a>
+          </div>
+          <div class="input-icon-wrapper" style="margin-top: 0.5rem;">
+            <i class="fa-solid fa-lock input-icon"></i>
+            <input
+              id="password"
+              type="password"
+              name="password"
+              class="form-control with-icon"
+              placeholder="••••••••"
+              required
+              autocomplete="current-password">
+          </div>
+        </div>
+
+        <button type="submit" class="btn btn-primary" style="width: 100%;">
+          Sign In <i class="fa-solid fa-arrow-right"></i>
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <div class="text-center mt-4">
+    <p class="text-muted" style="font-size: 0.875rem;">
+      Don't have an account? <a href="{{ url_for('auth.signup') }}" style="color: var(--color-brand-black); font-weight: 600; text-decoration: underline;">Sign up</a>
+    </p>
+  </div>
+
+</div>
+{% endblock %}

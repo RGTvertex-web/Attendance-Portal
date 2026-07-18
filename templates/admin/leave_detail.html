@@ -1,0 +1,83 @@
+{% extends "base_dashboard.html" %}
+
+{% block page_title %}Review Leave Request{% endblock %}
+
+{% block content %}
+<div style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 2rem;">
+  <div>
+    <div class="hero-badge">Leave Review</div>
+    <h1 class="hero-title">Review Request</h1>
+  </div>
+  <div>
+    <a href="{{ url_for('admin.leaves') }}" class="btn btn-secondary">
+      <i class="fa-solid fa-arrow-left"></i> Back to Leaves
+    </a>
+  </div>
+</div>
+
+<div class="card" style="max-width: 600px; margin: 0 auto;">
+  <div class="card-header">
+    <h3 class="card-title">Leave Request from {{ leave.student_name }}</h3>
+  </div>
+  <div class="card-body">
+    <div style="margin-bottom: 1.5rem;">
+      <div class="text-muted" style="font-size: 0.875rem; margin-bottom: 0.25rem;">Status</div>
+      <span class="badge {% if leave.status == 'approved' %}badge-success{% elif leave.status == 'rejected' %}badge-danger{% elif leave.status == 'pending' %}badge-warning{% else %}badge-neutral{% endif %}">
+        {{ leave.status | title }}
+      </span>
+    </div>
+
+    <div class="grid-cols-2" style="margin-bottom: 1.5rem; gap: 1rem;">
+      <div>
+        <div class="text-muted" style="font-size: 0.875rem; margin-bottom: 0.25rem;">Start Date</div>
+        <div style="font-weight: 500;">{{ leave.start_date }}</div>
+      </div>
+      <div>
+        <div class="text-muted" style="font-size: 0.875rem; margin-bottom: 0.25rem;">End Date</div>
+        <div style="font-weight: 500;">{{ leave.end_date }}</div>
+      </div>
+    </div>
+
+    <div style="margin-bottom: 2rem;">
+      <div class="text-muted" style="font-size: 0.875rem; margin-bottom: 0.25rem;">Reason for Leave</div>
+      <div style="padding: 1rem; background-color: var(--color-surface-hover); border-radius: var(--radius-sm); font-size: 0.875rem;">
+        {{ leave.reason }}
+      </div>
+    </div>
+
+    {% if leave.status == 'pending' %}
+    <form method="POST" action="{{ url_for('admin.decide_leave', leave_id=leave.leave_id) }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      
+      <div class="form-group mb-4">
+        <label class="form-label" for="remarks">Admin Remarks (Optional)</label>
+        <textarea id="remarks" name="remarks" class="form-control" rows="3" placeholder="Provide any comments..."></textarea>
+      </div>
+      
+      <div style="display: flex; gap: 1rem;">
+        <button type="submit" name="status" value="approved" class="btn btn-primary" style="flex: 1;" data-confirm="Approve this leave request?">
+          Approve <i class="fa-solid fa-check"></i>
+        </button>
+        <button type="submit" name="status" value="rejected" class="btn btn-outline" style="flex: 1; border-color: var(--color-danger); color: var(--color-danger);" data-confirm="Reject this leave request?">
+          Reject <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+    </form>
+    {% else %}
+    <div style="margin-bottom: 2rem;">
+      <div class="text-muted" style="font-size: 0.875rem; margin-bottom: 0.25rem;">Decided By</div>
+      <div style="font-weight: 500;">{{ leave.decided_by }} at {{ leave.decided_at[:10] }}</div>
+    </div>
+    {% if leave.remarks %}
+    <div style="margin-bottom: 2rem;">
+      <div class="text-muted" style="font-size: 0.875rem; margin-bottom: 0.25rem;">Admin Remarks</div>
+      <div style="padding: 1rem; border: 1px solid var(--color-border); border-radius: var(--radius-sm); font-size: 0.875rem;">
+        {{ leave.remarks }}
+      </div>
+    </div>
+    {% endif %}
+    {% endif %}
+
+  </div>
+</div>
+{% endblock %}
