@@ -12,9 +12,9 @@ A full-stack Flask web application built to manage interns, track attendance, ha
 
 ## Key Features
 1. **Role-Based Access Control (RBAC)**
-   - **Admin**: Has global visibility. Can approve leaves, view organization-wide dashboards, and export reports in CSV/Excel/PDF.
-   - **Department Manager**: Restricted to viewing interns within their assigned department. Can mark daily attendance and submit weekly performance reports.
-   - **Intern**: Can view their own attendance history, submit leave requests, and read their weekly performance evaluations.
+   - **Admin**: Has global visibility. Can approve leaves, view organization-wide dashboards, manage users, handle roles, and export reports in CSV/Excel/PDF.
+   - **Department Manager**: Restricted to viewing interns within their assigned department. Can mark daily attendance, assign/review tasks, and submit monthly performance reports.
+   - **Intern**: Can view their own attendance calendar, submit and withdraw leave requests, submit daily task reports, view notifications, and read their performance evaluations.
 
 2. **Automated Attendance**
    - Managers mark attendance via the portal.
@@ -25,13 +25,17 @@ A full-stack Flask web application built to manage interns, track attendance, ha
    - Emails are routed to a centralized admin inbox (`rgtvertexintern@gmail.com`).
    - Admins review and approve/reject leave requests from the Admin dashboard.
 
-4. **Weekly Performance Reports**
-   - Managers submit a weekly graded report for each intern based on 6 criteria (Work Quality, Task Completion, Learning Ability, Teamwork, Discipline, Behaviour).
-   - System auto-calculates total scores out of 100 and applies a Grade Band (Outstanding, Excellent, Good, Satisfactory, Needs Improvement).
+4. **Performance & Task Tracking**
+   - Managers submit a monthly graded performance report for each intern based on 7 criteria, with auto-calculated scores (out of 100) and grade bands.
+   - Managers assign tasks to interns, and interns submit daily progress reports (which they can edit on the same day).
 
 5. **Analytics & Exports**
-   - Admin dashboard displays active KPIs (Present/Absent counts, unread warnings, at-risk students).
+   - Admin dashboard displays active KPIs (Present/Absent counts, unread warnings, at-risk interns).
    - One-click exports of Attendance, Leave, and Performance data to **CSV**, **Excel (.xlsx)**, and **PDF**.
+
+6. **Self-Service & Security**
+   - Built-in "Forgot Password" flow using secure email reset tokens.
+   - "My Profile" allows all roles to update their names and change passwords.
 
 ---
 
@@ -75,8 +79,12 @@ MANAGER_NOTIFICATION_EMAIL=your-manager-notification-email@example.com
 ```
 
 ### 4. Database Setup
-1. **Supabase**: Ensure your `profiles` table is set up in Supabase matching the expected schema (must include `id`, `name`, `role`, `department`, `manager_id`).
-2. **Google Sheets**: Ensure your Google Sheet has the following tabs created exactly as named:
+1. **Supabase (PostgreSQL)**: Ensure your Supabase project is set up. You **must** run the SQL migration scripts located in the root directory via your Supabase SQL Editor in the following order:
+   - `supabase_migration.sql` (Creates base `users` table and sync triggers)
+   - `supabase_unblock_rls.sql` (Disables/configures RLS for application access)
+   - `supabase_migration_manager_invites.sql` (Adds invite-related columns)
+   - `supabase_migration_password_reset.sql` (Adds password reset token columns)
+2. **Google Sheets**: Ensure your Google Sheet has the following tabs created exactly as named, with matching headers as defined in `services/sheets_service.py`:
    - `Users`, `Tasks`, `Submissions`, `Attendance`, `Warnings`, `Leaves`, `Reports`, `Performance`, `Invites`
 
 ### 5. Run the Application

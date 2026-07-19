@@ -4,14 +4,18 @@ Run: python make_env.py
 """
 import json, secrets, os
 
-JSON_FILE = "attendance-portal-502411-46a0840cea1d.json"
-SPREADSHEET_ID = "1CArWpWPAAr7DKwrKIzhdRstbJKiQ0NGztmjDUE2Lg3I"
+JSON_FILE = "your_google_service_account.json"
+SPREADSHEET_ID = "your_spreadsheet_id_here"
 
-with open(JSON_FILE) as f:
-    creds = json.load(f)
+try:
+    with open(JSON_FILE) as f:
+        creds = json.load(f)
+    creds_json_str = json.dumps(creds)
+except FileNotFoundError:
+    print(f"⚠️ Warning: '{JSON_FILE}' not found. Using placeholder for credentials.")
+    creds_json_str = '{"type":"service_account"}'
 
 secret_key = secrets.token_hex(32)
-creds_json_str = json.dumps(creds)
 
 env_content = f"""FLASK_ENV=development
 SECRET_KEY={secret_key}
