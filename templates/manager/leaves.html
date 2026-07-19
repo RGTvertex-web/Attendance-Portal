@@ -1,0 +1,77 @@
+{% extends "base_dashboard.html" %}
+
+{% block page_title %}Leave Requests{% endblock %}
+
+{% block content %}
+<section class="hero-section">
+  <div class="hero-badge">Manager</div>
+  <h1 class="hero-title">Leave Requests</h1>
+  <p class="hero-subtitle">Review and approve leave applications from your interns.</p>
+</section>
+
+<div class="card mt-4">
+  <div class="card-header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
+    <h3 class="card-title">All Requests</h3>
+    <input type="text" id="internSearch" class="form-control" placeholder="Search interns..." onkeyup="filterLeaves()" style="width: 250px;">
+  </div>
+  <div class="table-responsive">
+    <table class="table">
+      <thead>
+        <tr>
+          <th>Intern</th>
+          <th>Dates</th>
+          <th>Reason</th>
+          <th>Status</th>
+          <th>Action</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for leave in leaves %}
+        <tr class="leave-row" data-name="{{ leave.student_name|lower }}">
+          <td>
+            <div style="font-weight: 500;">{{ leave.student_name }}</div>
+            <div class="text-muted" style="font-size: 0.75rem;">Balance: {{ leave.leave_balance }}</div>
+          </td>
+          <td>{{ leave.start_date }} to {{ leave.end_date }}</td>
+          <td class="text-muted" style="font-size: 0.875rem;">
+            {{ leave.reason[:50] }}{% if leave.reason|length > 50 %}...{% endif %}
+          </td>
+          <td>
+            <span class="badge {% if leave.status == 'approved' %}badge-success{% elif leave.status == 'rejected' %}badge-danger{% elif leave.status == 'pending' %}badge-warning{% else %}badge-neutral{% endif %}">
+              {{ leave.status | title }}
+            </span>
+          </td>
+          <td>
+            <a href="{{ url_for('manager.leave_detail', leave_id=leave.leave_id) }}" class="btn btn-outline btn-sm">
+              Review
+            </a>
+          </td>
+        </tr>
+        {% else %}
+        <tr>
+          <td colspan="5" class="text-center text-muted" style="padding: 3rem 0;">No leave requests found.</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function filterLeaves() {
+    let input = document.getElementById('internSearch');
+    let filter = input.value.toLowerCase();
+    let rows = document.querySelectorAll('.leave-row');
+    rows.forEach(row => {
+        let name = row.getAttribute('data-name');
+        if (name.indexOf(filter) > -1) {
+            row.style.display = "";
+        } else {
+            row.style.display = "none";
+        }
+    });
+}
+</script>
+{% endblock %}

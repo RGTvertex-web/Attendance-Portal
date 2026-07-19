@@ -1,0 +1,100 @@
+{% extends 'base_auth.html' %}
+
+{% block page_title %}Manager Invite | Intern Portal{% endblock %}
+
+{% block content %}
+<div style="max-width: 500px; margin: 4rem auto;">
+  <div class="auth-card text-left">
+    <div class="auth-card-body">
+      <div class="auth-logo" style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 2rem;">
+        <div style="width: 40px; height: 40px; background-color: #ffffff; border: 1px solid #e5e7eb; border-radius: 10px; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
+          <img src="{{ url_for('static', filename='img/brand/favicon.svg') }}" alt="RGTvertex Icon" style="height: 24px;">
+        </div>
+        <span style="font-family: 'Playfair Display', serif; font-weight: 800; font-size: 1.5rem; color: #111827; margin: 0;">RGTvertex</span>
+      </div>
+      <h1 class="auth-title">Manager Registration.</h1>
+      <p class="auth-subtitle">Complete your profile to join the {{ invite.department }} department.</p>
+
+      {% if error %}
+      <div class="alert alert-danger" style="padding: 0.75rem 1rem;">
+        <i class="fa-solid fa-triangle-exclamation"></i> {{ error }}
+      </div>
+      {% endif %}
+
+      <form method="POST" action="{{ url_for('auth.manager_signup', token=token) }}" novalidate>
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+        <div class="form-group">
+          <label class="form-label" for="email">Email Address</label>
+          <div class="input-icon-wrapper">
+            <i class="fa-regular fa-envelope input-icon"></i>
+            <input
+              id="email"
+              type="email"
+              class="form-control with-icon"
+              value="{{ invite.email }}"
+              disabled>
+          </div>
+        </div>
+        
+        <div class="form-group">
+          <label class="form-label" for="department">Department</label>
+          <div class="input-icon-wrapper">
+            <i class="fa-regular fa-building input-icon"></i>
+            <input
+              id="department"
+              type="text"
+              class="form-control with-icon"
+              value="{{ invite.department }}"
+              disabled>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="name">Full Name</label>
+          <div class="input-icon-wrapper">
+            <i class="fa-regular fa-user input-icon"></i>
+            <input
+              id="name"
+              type="text"
+              name="name"
+              class="form-control with-icon"
+              placeholder="Jane Doe"
+              value="{{ request.form.get('name', '') }}"
+              required
+              autocomplete="name"
+              autofocus>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="password">Set Password</label>
+          <div class="input-icon-wrapper">
+            <i class="fa-solid fa-lock input-icon"></i>
+            <input
+              id="password"
+              type="password"
+              name="password"
+              class="form-control with-icon"
+              placeholder="••••••••"
+              required
+              autocomplete="new-password">
+          </div>
+          <div class="text-muted mt-1" style="font-size: 0.75rem;">Must be at least 6 characters.</div>
+        </div>
+
+        <button type="submit" class="btn btn-primary mt-3" style="width: 100%;">
+          Complete Registration <i class="fa-solid fa-arrow-right"></i>
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <div class="text-center mt-4">
+    <p class="text-muted" style="font-size: 0.875rem;">
+      Already have an account? <a href="{{ url_for('auth.login') }}" style="color: var(--color-brand-black); font-weight: 600; text-decoration: underline;">Log in</a>
+    </p>
+  </div>
+
+</div>
+{% endblock %}

@@ -1,0 +1,116 @@
+{% extends "base_dashboard.html" %}
+
+{% block page_title %}Warnings Management{% endblock %}
+
+{% block content %}
+<div style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 2rem;">
+  <div>
+    <h1 class="hero-title" style="font-size: 2.5rem; margin-bottom: 0.5rem;">Warnings Management</h1>
+    <p class="text-muted" style="margin: 0;">Monitor and revoke warnings across the organization.</p>
+  </div>
+</div>
+
+<!-- ── Filter Bar ──────────────────────────────────────────────────────────── -->
+<div class="card mb-4" style="padding: 1rem 1.5rem; background-color: var(--color-surface-hover);">
+  <form method="GET" action="{{ url_for('admin.warnings') }}" style="display: flex; align-items: center; gap: 1rem; flex-wrap: wrap;">
+    <input type="text" name="search" class="form-control" placeholder="Search intern or reason..." value="{{ search }}" style="width: 250px;">
+    <span class="text-muted" style="font-weight: 600; font-size: 0.875rem; text-transform: uppercase; letter-spacing: 0.05em; margin-left: auto;">Filter:</span>
+    
+    <select name="department" class="form-select" style="width: auto;" onchange="this.form.submit()">
+      <option value="">All Departments</option>
+      {% for d in DEPARTMENTS %}
+      <option value="{{ d }}" {% if filters.department == d %}selected{% endif %}>{{ d }}</option>
+      {% endfor %}
+    </select>
+
+    <select name="intern_id" class="form-select" style="width: auto;">
+      <option value="">All Interns</option>
+      {% for intern in interns %}
+      <option value="{{ intern.id }}" {% if filters.intern_id == intern.id %}selected{% endif %}>
+        {{ intern.name }}
+      </option>
+      {% endfor %}
+    </select>
+
+    <div style="display: flex; gap: 0.5rem; margin-left: auto;">
+      <button type="submit" class="btn btn-primary btn-sm">Apply</button>
+      <a href="{{ url_for('admin.warnings') }}" class="btn btn-secondary btn-sm">Clear</a>
+    </div>
+  </form>
+</div>
+
+<!-- ── Results Table ───────────────────────────────────────────────────────── -->
+<div class="card">
+  <div class="table-responsive">
+    <table class="table">
+      <thead>
+        <tr>
+          <th>Date</th>
+          <th>Intern</th>
+          <th>Department</th>
+          <th>Reason</th>
+          <th>Issued By</th>
+          <th>Status</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for w in warnings %}
+        <tr>
+          <td style="font-weight: 500;">{{ w.date }}</td>
+          <td>{{ w.intern_name }}</td>
+          <td>{{ w.department }}</td>
+          <td class="text-muted" style="max-width: 300px; white-space: normal;">{{ w.reason }}</td>
+          <td>
+            {% if w.issued_by == 'system' %}
+              <span class="badge badge-info">System</span>
+            {% else %}
+              <span class="badge badge-secondary">Manual</span>
+            {% endif %}
+          </td>
+          <td>
+            {% if w.status == 'revoked' %}
+              <span class="badge badge-warning">Revoked</span>
+            {% else %}
+              <span class="badge badge-danger">Active</span>
+            {% endif %}
+          </td>
+          <td>
+            {% if w.status != 'revoked' %}
+            <form method="POST" action="{{ url_for('admin.warnings') }}" style="display:inline;" onsubmit="return confirm('Are you sure you want to revoke this warning?');">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <input type="hidden" name="action" value="revoke">
+              <input type="hidden" name="warning_id" value="{{ w.warning_id }}">
+              <button type="submit" class="btn btn-sm btn-outline">Revoke</button>
+            </form>
+            {% else %}
+              <span class="text-muted">—</span>
+            {% endif %}
+          </td>
+        </tr>
+        {% else %}
+        <tr>
+          <td colspan="7" class="text-center text-muted" style="padding: 3rem 0;">
+            No warnings found.
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  
+  {% if total_pages > 1 %}
+  <div style="padding: 1rem 1.5rem; display: flex; justify-content: center; border-top: 1px solid var(--color-border); gap: 0.5rem;">
+    {% if page > 1 %}
+    <a href="{{ url_for('admin.warnings', page=page-1, department=filters.department, intern_id=filters.intern_id, search=search) }}" class="btn btn-outline btn-sm">Previous</a>
+    {% endif %}
+    
+    <span class="text-muted" style="padding: 0.25rem 0.5rem;">Page {{ page }} of {{ total_pages }}</span>
+    
+    {% if page < total_pages %}
+    <a href="{{ url_for('admin.warnings', page=page+1, department=filters.department, intern_id=filters.intern_id, search=search) }}" class="btn btn-outline btn-sm">Next</a>
+    {% endif %}
+  </div>
+  {% endif %}
+</div>
+{% endblock %}
