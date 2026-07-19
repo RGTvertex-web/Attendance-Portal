@@ -1,0 +1,107 @@
+{% extends "base_dashboard.html" %}
+
+{% block page_title %}Organization Attendance{% endblock %}
+
+{% block content %}
+<!-- ── Hero Section ──────────────────────────────────────────────────────── -->
+<section class="hero-section">
+  <div class="hero-badge">Administrator</div>
+  <h1 class="hero-title">Organization Attendance</h1>
+  <p class="hero-subtitle">Monitor all interns' daily reports and override attendance globally.</p>
+</section>
+
+<!-- ── Main Content ──────────────────────────────────────────────────────────── -->
+<div class="card">
+  <div class="card-header" style="display: flex; justify-content: space-between; align-items: center;">
+    <h3 class="card-title">Intern Reports</h3>
+    <form method="GET" action="{{ url_for('admin.attendance') }}" style="display: flex; gap: 0.5rem; align-items: center;">
+      <input type="date" name="date" class="form-control" value="{{ today }}" max="{{ today }}" style="width: auto;" required>
+      <button type="submit" class="btn btn-secondary btn-sm">View <i class="fa-solid fa-arrow-right"></i></button>
+    </form>
+  </div>
+  <div class="card-body">
+    {% if students %}
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem;">
+        {% for student in students %}
+        <div style="padding: 1.5rem; border: 1px solid var(--color-border); border-radius: var(--radius-md);">
+          
+          <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 0.5rem;">
+            <div>
+              <div style="font-weight: 600; font-size: 1.125rem;">
+                {{ student.name }}
+                {% if not student.latest_report or student.latest_report.submitted_at[:10] != today %}
+                  <span class="badge badge-warning" style="margin-left: 0.5rem;"><i class="fa-solid fa-circle-exclamation"></i> Missing Report</span>
+                {% endif %}
+              </div>
+              <div class="text-muted" style="font-size: 0.75rem;">Manager ID: {{ student.manager_id[:8] if student.manager_id else 'None' }}</div>
+            </div>
+            <div>
+              <span class="badge {% if student.today_status == 'present' %}badge-success{% elif student.today_status == 'absent' %}badge-danger{% elif student.today_status == 'on_leave' %}badge-info{% else %}badge-warning{% endif %}">
+                {{ student.today_status | replace('_', ' ') | title }}
+              </span>
+            </div>
+          </div>
+
+          {% if student.latest_report and student.latest_report.submitted_at[:10] == today %}
+            <div style="font-size: 0.875rem; background: var(--color-surface-hover); padding: 1rem; border-radius: var(--radius-sm); margin-bottom: 1rem;">
+              <div style="margin-bottom: 0.5rem;"><strong>Given:</strong> {{ student.latest_report.report_data.given }}</div>
+              <div style="margin-bottom: 0.5rem;"><strong>Done:</strong> {{ student.latest_report.report_data.done }}</div>
+              {% if student.latest_report.report_data.remaining %}
+              <div><strong>Remaining:</strong> {{ student.latest_report.report_data.remaining }}</div>
+              {% endif %}
+              <div class="text-muted" style="margin-top: 0.5rem; font-size: 0.75rem;">Submitted at {{ student.latest_report.submitted_at[11:16] }} UTC</div>
+            </div>
+          {% else %}
+            <div class="text-muted" style="font-size: 0.875rem; margin-bottom: 1rem; font-style: italic;">
+              No report submitted yet for today.
+            </div>
+          {% endif %}
+
+          <!-- Mark Attendance Actions -->
+          <div style="display: flex; gap: 0.5rem; margin-top: auto;">
+            {% if is_weekend %}
+              <div class="text-muted" style="font-style: italic; align-self: center; padding: 0.25rem 0;">
+                <i class="fa-solid fa-umbrella-beach"></i> Weekend (Auto-Leave)
+              </div>
+            {% else %}
+              <form method="POST" action="{{ url_for('admin.mark_attendance') }}" style="display:inline;">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <input type="hidden" name="student_id" value="{{ student.id }}">
+                <input type="hidden" name="date" value="{{ today }}">
+                <input type="hidden" name="status" value="present">
+                <button type="submit" class="btn btn-primary btn-sm" {% if student.today_status == 'present' %}disabled{% endif %}>
+                  Mark Present <i class="fa-solid fa-check"></i>
+                </button>
+              </form>
+
+              <form method="POST" action="{{ url_for('admin.mark_attendance') }}" style="display:inline;">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <input type="hidden" name="student_id" value="{{ student.id }}">
+                <input type="hidden" name="date" value="{{ today }}">
+                <input type="hidden" name="status" value="absent">
+                <button type="submit" class="btn btn-secondary btn-sm" {% if student.today_status == 'absent' %}disabled{% endif %}>
+                  Mark Absent <i class="fa-solid fa-xmark"></i>
+                </button>
+              </form>
+
+              <form method="POST" action="{{ url_for('admin.mark_attendance') }}" style="display:inline;">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <input type="hidden" name="student_id" value="{{ student.id }}">
+                <input type="hidden" name="date" value="{{ today }}">
+                <input type="hidden" name="status" value="on_leave">
+                <button type="submit" class="btn btn-secondary btn-sm" {% if student.today_status == 'on_leave' %}disabled{% endif %}>
+                  Mark On Leave <i class="fa-solid fa-user-clock"></i>
+                </button>
+              </form>
+            {% endif %}
+          </div>
+
+        </div>
+        {% endfor %}
+      </div>
+    {% else %}
+      <div class="text-center text-muted" style="padding: 2rem 0;">No interns found.</div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

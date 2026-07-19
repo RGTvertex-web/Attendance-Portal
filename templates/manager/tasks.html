@@ -1,0 +1,127 @@
+{% extends "base_dashboard.html" %}
+
+{% block page_title %}Task Management{% endblock %}
+
+{% block content %}
+<!-- ── Header & Actions ─────────────────────────────────────────────────── -->
+<div style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 2rem;">
+  <div>
+    <h1 class="hero-title" style="font-size: 2.5rem; margin-bottom: 0.5rem;">Task Management</h1>
+    <p class="text-muted" style="margin: 0;">Create and monitor tasks assigned to your interns.</p>
+  </div>
+</div>
+
+<div class="grid-cols-2">
+
+  <!-- Create Task Form -->
+  <div class="card">
+    <div class="card-header">
+      <h3 class="card-title">Create New Task</h3>
+    </div>
+    <div class="card-body">
+      <form method="POST" action="{{ url_for('manager.create_task') }}" novalidate>
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+        <div class="form-group">
+          <label class="form-label" for="title">Task Title *</label>
+          <input id="title" type="text" name="title" class="form-control" required
+            placeholder="e.g. Daily Log — July 14">
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="description">Description</label>
+          <textarea id="description" name="description" class="form-control" rows="3"
+            placeholder="What should interns submit?"></textarea>
+        </div>
+
+        <div class="grid-cols-2" style="gap: 1rem; margin-bottom: 1.5rem;">
+          <div class="form-group" style="margin-bottom: 0;">
+            <label class="form-label" for="category">Category *</label>
+            <select id="category" name="category" class="form-select" required>
+              {% for cat in categories %}
+              <option value="{{ cat }}">{{ cat }}</option>
+              {% endfor %}
+            </select>
+          </div>
+
+          <div class="form-group" style="margin-bottom: 0;">
+            <label class="form-label" for="assigned_to">Assign To *</label>
+            <select id="assigned_to" name="assigned_to" class="form-select" required>
+              <option value="all">All My Interns</option>
+              {% for student in students %}
+              <option value="{{ student.id }}">{{ student.name }}</option>
+              {% endfor %}
+            </select>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="due_date">Due Date & Time (IST) *</label>
+          <input id="due_date" type="datetime-local" name="due_date" class="form-control" required>
+          <div class="text-muted" style="font-size: 0.75rem; margin-top: 0.25rem;">Enter time in IST — stored as UTC internally</div>
+        </div>
+
+        <button type="submit" class="btn btn-primary" style="width: 100%;">
+          Create Task <i class="fa-solid fa-arrow-right"></i>
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Existing Tasks -->
+  <div class="card">
+    <div class="card-header">
+      <h3 class="card-title">My Tasks</h3>
+    </div>
+    <div class="card-body">
+      {% if tasks %}
+        <div style="display: flex; flex-direction: column; gap: 1.5rem;">
+        {% for task in tasks | sort(attribute='due_date', reverse=True) %}
+        <div style="padding-bottom: 1.5rem; border-bottom: 1px solid var(--color-border); {% if loop.last %}border-bottom: none; padding-bottom: 0;{% endif %}">
+          <div class="text-muted" style="font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.25rem;">{{ task.category }}</div>
+          <div style="font-weight: 600; font-size: 1.125rem; margin-bottom: 0.5rem;">{{ task.title }}</div>
+          
+          {% if task.description %}
+          <div style="font-size: 0.875rem; margin-bottom: 1rem;">{{ task.description[:120] }}{% if task.description|length > 120 %}…{% endif %}</div>
+          {% endif %}
+          
+          <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 0.5rem;">
+            <div class="text-muted" style="font-size: 0.875rem;">
+              Due: {{ task.due_date[:10] if task.due_date else '—' }}
+            </div>
+            <div style="display: flex; align-items: center; gap: 0.5rem;">
+              <span class="text-muted" style="font-size: 0.75rem;">
+                {{ task.submission_count }} / {{ students | length }} submitted
+              </span>
+              <div style="width: 80px; height: 6px; background-color: var(--color-surface-hover); border-radius: 999px; overflow: hidden;">
+                <div style="height: 100%; background-color: var(--color-brand-black); width: {{ ((task.submission_count / (students | length)) * 100) | round if students else 0 }}%;"></div>
+              </div>
+            </div>
+          </div>
+          
+          <div class="text-muted" style="font-size: 0.75rem;">
+            Assigned to: {{ 'All Interns' if task.assigned_to == 'all' else task.assigned_to[:16] + '…' }}
+          </div>
+        </div>
+        {% endfor %}
+        </div>
+      {% else %}
+        <div class="text-center text-muted" style="padding: 2rem 0;">No tasks created yet. Create your first task!</div>
+      {% endif %}
+    </div>
+  </div>
+
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  // Pre-fill datetime-local to current IST time
+  const now = new Date();
+  const offset = 5.5 * 60 * 60 * 1000; // IST offset from UTC
+  const ist = new Date(now.getTime() + offset);
+  const pad = n => n.toString().padStart(2, '0');
+  document.getElementById('due_date').value =
+    `${ist.getUTCFullYear()}-${pad(ist.getUTCMonth()+1)}-${pad(ist.getUTCDate())}T${pad(ist.getUTCHours())}:${pad(ist.getUTCMinutes())}`;
+</script>
+{% endblock %}
